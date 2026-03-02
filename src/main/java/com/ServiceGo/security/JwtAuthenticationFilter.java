@@ -1,4 +1,4 @@
-package com.ServiceGo.security;
+package com.ServiceGo.infraestrutura.seguranca;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -64,3 +64,4 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 }
+

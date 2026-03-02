@@ -22,6 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/expenses")
+@Deprecated
 public class ExpenseController {
 
     private final ExpenseRepository expenseRepository;
@@ -34,58 +35,23 @@ public class ExpenseController {
 
     @GetMapping
     public List<ExpenseResponse> list() {
-        return expenseRepository.findAll().stream().map(this::toResponse).toList();
+        return expenseRepository.findAll().stream().map(expense -> {
+            Long tripId = expense.getTrip() != null ? expense.getTrip().getId() : null;
+            return new ExpenseResponse(
+                    expense.getId(),
+                    tripId,
+                    expense.getCategory(),
+                    expense.getAmount(),
+                    expense.getDescription(),
+                    expense.getOccurredAt()
+            );
+        }).toList();
     }
 
     @GetMapping("/{id}")
     public ExpenseResponse getById(@PathVariable Long id) {
         Expense expense = expenseRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Expense not found"));
-        return toResponse(expense);
-    }
-
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public ExpenseResponse create(@Valid @RequestBody ExpenseRequest request) {
-        Expense expense = new Expense();
-        applyRequest(request, expense);
-        return toResponse(expenseRepository.save(expense));
-    }
-
-    @PutMapping("/{id}")
-    public ExpenseResponse update(@PathVariable Long id, @Valid @RequestBody ExpenseRequest request) {
-        Expense expense = expenseRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Expense not found"));
-        applyRequest(request, expense);
-        return toResponse(expenseRepository.save(expense));
-    }
-
-    @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
-        if (!expenseRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Expense not found");
-        }
-        expenseRepository.deleteById(id);
-    }
-
-    private void applyRequest(ExpenseRequest request, Expense expense) {
-        expense.setTrip(resolveTrip(request.tripId()));
-        expense.setCategory(request.category());
-        expense.setAmount(request.amount());
-        expense.setDescription(request.description());
-        expense.setOccurredAt(request.occurredAt());
-    }
-
-    private Trip resolveTrip(Long tripId) {
-        if (tripId == null) {
-            return null;
-        }
-        return tripRepository.findById(tripId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid tripId"));
-    }
-
-    private ExpenseResponse toResponse(Expense expense) {
         Long tripId = expense.getTrip() != null ? expense.getTrip().getId() : null;
         return new ExpenseResponse(
                 expense.getId(),
@@ -95,5 +61,69 @@ public class ExpenseController {
                 expense.getDescription(),
                 expense.getOccurredAt()
         );
+    }
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public ExpenseResponse create(@Valid @RequestBody ExpenseRequest request) {
+        Expense expense = new Expense();
+        Trip trip = null;
+        if (request.tripId() != null) {
+            trip = tripRepository.findById(request.tripId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid tripId"));
+        }
+        expense.setTrip(trip);
+        expense.setCategory(request.category());
+        expense.setAmount(request.amount());
+        expense.setDescription(request.description());
+        expense.setOccurredAt(request.occurredAt());
+
+        Expense saved = expenseRepository.save(expense);
+        Long tripId = saved.getTrip() != null ? saved.getTrip().getId() : null;
+        return new ExpenseResponse(
+                saved.getId(),
+                tripId,
+                saved.getCategory(),
+                saved.getAmount(),
+                saved.getDescription(),
+                saved.getOccurredAt()
+        );
+    }
+
+    @PutMapping("/{id}")
+    public ExpenseResponse update(@PathVariable Long id, @Valid @RequestBody ExpenseRequest request) {
+        Expense expense = expenseRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Expense not found"));
+
+        Trip trip = null;
+        if (request.tripId() != null) {
+            trip = tripRepository.findById(request.tripId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid tripId"));
+        }
+        expense.setTrip(trip);
+        expense.setCategory(request.category());
+        expense.setAmount(request.amount());
+        expense.setDescription(request.description());
+        expense.setOccurredAt(request.occurredAt());
+
+        Expense saved = expenseRepository.save(expense);
+        Long tripId = saved.getTrip() != null ? saved.getTrip().getId() : null;
+        return new ExpenseResponse(
+                saved.getId(),
+                tripId,
+                saved.getCategory(),
+                saved.getAmount(),
+                saved.getDescription(),
+                saved.getOccurredAt()
+        );
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
+        if (!expenseRepository.existsById(id)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Expense not found");
+        }
+        expenseRepository.deleteById(id);
     }
 }

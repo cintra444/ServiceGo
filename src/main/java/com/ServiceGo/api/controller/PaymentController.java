@@ -24,6 +24,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/payments")
+@Deprecated
 public class PaymentController {
 
     private final PaymentRepository paymentRepository;
@@ -42,70 +43,28 @@ public class PaymentController {
 
     @GetMapping
     public List<PaymentResponse> list() {
-        return paymentRepository.findAll().stream().map(this::toResponse).toList();
+        return paymentRepository.findAll().stream().map(payment -> {
+            Long tripId = payment.getTrip() != null ? payment.getTrip().getId() : null;
+            Long customerId = payment.getCustomer() != null ? payment.getCustomer().getId() : null;
+            return new PaymentResponse(
+                    payment.getId(),
+                    tripId,
+                    customerId,
+                    payment.getMethod(),
+                    payment.getStatus(),
+                    payment.getAmount(),
+                    payment.getPaidAt(),
+                    payment.getDueAt(),
+                    payment.getReferenceCode(),
+                    payment.getNotes()
+            );
+        }).toList();
     }
 
     @GetMapping("/{id}")
     public PaymentResponse getById(@PathVariable Long id) {
         Payment payment = paymentRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Payment not found"));
-        return toResponse(payment);
-    }
-
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public PaymentResponse create(@Valid @RequestBody PaymentRequest request) {
-        Payment payment = new Payment();
-        applyRequest(request, payment);
-        return toResponse(paymentRepository.save(payment));
-    }
-
-    @PutMapping("/{id}")
-    public PaymentResponse update(@PathVariable Long id, @Valid @RequestBody PaymentRequest request) {
-        Payment payment = paymentRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Payment not found"));
-        applyRequest(request, payment);
-        return toResponse(paymentRepository.save(payment));
-    }
-
-    @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
-        if (!paymentRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Payment not found");
-        }
-        paymentRepository.deleteById(id);
-    }
-
-    private void applyRequest(PaymentRequest request, Payment payment) {
-        payment.setTrip(resolveTrip(request.tripId()));
-        payment.setCustomer(resolveCustomer(request.customerId()));
-        payment.setMethod(request.method());
-        payment.setStatus(request.status());
-        payment.setAmount(request.amount());
-        payment.setPaidAt(request.paidAt());
-        payment.setDueAt(request.dueAt());
-        payment.setReferenceCode(request.referenceCode());
-        payment.setNotes(request.notes());
-    }
-
-    private Trip resolveTrip(Long tripId) {
-        if (tripId == null) {
-            return null;
-        }
-        return tripRepository.findById(tripId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid tripId"));
-    }
-
-    private Customer resolveCustomer(Long customerId) {
-        if (customerId == null) {
-            return null;
-        }
-        return customerRepository.findById(customerId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid customerId"));
-    }
-
-    private PaymentResponse toResponse(Payment payment) {
         Long tripId = payment.getTrip() != null ? payment.getTrip().getId() : null;
         Long customerId = payment.getCustomer() != null ? payment.getCustomer().getId() : null;
         return new PaymentResponse(
@@ -120,5 +79,97 @@ public class PaymentController {
                 payment.getReferenceCode(),
                 payment.getNotes()
         );
+    }
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public PaymentResponse create(@Valid @RequestBody PaymentRequest request) {
+        Payment payment = new Payment();
+        Trip trip = null;
+        if (request.tripId() != null) {
+            trip = tripRepository.findById(request.tripId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid tripId"));
+        }
+        Customer customer = null;
+        if (request.customerId() != null) {
+            customer = customerRepository.findById(request.customerId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid customerId"));
+        }
+        payment.setTrip(trip);
+        payment.setCustomer(customer);
+        payment.setMethod(request.method());
+        payment.setStatus(request.status());
+        payment.setAmount(request.amount());
+        payment.setPaidAt(request.paidAt());
+        payment.setDueAt(request.dueAt());
+        payment.setReferenceCode(request.referenceCode());
+        payment.setNotes(request.notes());
+
+        Payment saved = paymentRepository.save(payment);
+        Long tripId = saved.getTrip() != null ? saved.getTrip().getId() : null;
+        Long customerId = saved.getCustomer() != null ? saved.getCustomer().getId() : null;
+        return new PaymentResponse(
+                saved.getId(),
+                tripId,
+                customerId,
+                saved.getMethod(),
+                saved.getStatus(),
+                saved.getAmount(),
+                saved.getPaidAt(),
+                saved.getDueAt(),
+                saved.getReferenceCode(),
+                saved.getNotes()
+        );
+    }
+
+    @PutMapping("/{id}")
+    public PaymentResponse update(@PathVariable Long id, @Valid @RequestBody PaymentRequest request) {
+        Payment payment = paymentRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Payment not found"));
+
+        Trip trip = null;
+        if (request.tripId() != null) {
+            trip = tripRepository.findById(request.tripId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid tripId"));
+        }
+        Customer customer = null;
+        if (request.customerId() != null) {
+            customer = customerRepository.findById(request.customerId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid customerId"));
+        }
+        payment.setTrip(trip);
+        payment.setCustomer(customer);
+        payment.setMethod(request.method());
+        payment.setStatus(request.status());
+        payment.setAmount(request.amount());
+        payment.setPaidAt(request.paidAt());
+        payment.setDueAt(request.dueAt());
+        payment.setReferenceCode(request.referenceCode());
+        payment.setNotes(request.notes());
+
+        Payment saved = paymentRepository.save(payment);
+        Long tripId = saved.getTrip() != null ? saved.getTrip().getId() : null;
+        Long customerId = saved.getCustomer() != null ? saved.getCustomer().getId() : null;
+        return new PaymentResponse(
+                saved.getId(),
+                tripId,
+                customerId,
+                saved.getMethod(),
+                saved.getStatus(),
+                saved.getAmount(),
+                saved.getPaidAt(),
+                saved.getDueAt(),
+                saved.getReferenceCode(),
+                saved.getNotes()
+        );
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
+        if (!paymentRepository.existsById(id)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Payment not found");
+        }
+        paymentRepository.deleteById(id);
     }
 }

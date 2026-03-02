@@ -1,4 +1,4 @@
-package com.ServiceGo.security;
+package com.ServiceGo.infraestrutura.seguranca;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -60,3 +60,4 @@ public class JwtService {
         return username.equals(userDetails.getUsername()) && expiration.after(new Date());
     }
 }
+
