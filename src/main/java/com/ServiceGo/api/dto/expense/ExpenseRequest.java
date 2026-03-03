@@ -9,6 +9,7 @@ import java.time.OffsetDateTime;
 
 public record ExpenseRequest(
         Long tripId,
+        @NotNull Long veiculoId,
         @NotNull ExpenseCategory category,
         @NotNull @DecimalMin("0.0") BigDecimal amount,
         @Size(max = 600) String description,

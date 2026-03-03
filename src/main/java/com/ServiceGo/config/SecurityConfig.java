@@ -1,6 +1,6 @@
 package com.ServiceGo.config;
 
-import com.ServiceGo.infraestrutura.seguranca.JwtAuthenticationFilter;
+import com.ServiceGo.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -66,4 +66,3 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 }
-

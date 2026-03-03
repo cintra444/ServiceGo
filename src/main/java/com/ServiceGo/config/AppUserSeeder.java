@@ -42,7 +42,7 @@ public class AppUserSeeder implements CommandLineRunner {
         admin.setName(defaultName);
         admin.setEmail(defaultEmail);
         admin.setPasswordHash(passwordEncoder.encode(defaultPassword));
-        admin.setRole(UserRole.ADMIN);
+        admin.setRole(UserRole.ADMINISTRADOR);
         admin.setActive(true);
         admin.setCreatedAt(OffsetDateTime.now());
         appUserRepository.save(admin);

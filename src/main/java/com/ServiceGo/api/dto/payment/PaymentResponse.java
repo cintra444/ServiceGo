@@ -12,6 +12,8 @@ public record PaymentResponse(
         PaymentMethod method,
         PaymentStatus status,
         BigDecimal amount,
+        boolean pagamentoParcial,
+        Integer numeroParcela,
         OffsetDateTime paidAt,
         OffsetDateTime dueAt,
         String referenceCode,

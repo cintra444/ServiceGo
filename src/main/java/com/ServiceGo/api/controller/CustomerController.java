@@ -21,7 +21,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/customers")
-@Deprecated
 public class CustomerController {
 
     private final CustomerRepository customerRepository;
@@ -32,28 +31,14 @@ public class CustomerController {
 
     @GetMapping
     public List<CustomerResponse> list() {
-        return customerRepository.findAll().stream().map(customer -> new CustomerResponse(
-                customer.getId(),
-                customer.getName(),
-                customer.getPhone(),
-                customer.getEmail(),
-                customer.getNotes(),
-                customer.getCreatedAt()
-        )).toList();
+        return customerRepository.findAll().stream().map(this::toResponse).toList();
     }
 
     @GetMapping("/{id}")
     public CustomerResponse getById(@PathVariable Long id) {
         Customer customer = customerRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Customer not found"));
-        return new CustomerResponse(
-                customer.getId(),
-                customer.getName(),
-                customer.getPhone(),
-                customer.getEmail(),
-                customer.getNotes(),
-                customer.getCreatedAt()
-        );
+        return toResponse(customer);
     }
 
     @PostMapping
@@ -65,16 +50,7 @@ public class CustomerController {
         customer.setEmail(request.email());
         customer.setNotes(request.notes());
         customer.setCreatedAt(OffsetDateTime.now());
-
-        Customer saved = customerRepository.save(customer);
-        return new CustomerResponse(
-                saved.getId(),
-                saved.getName(),
-                saved.getPhone(),
-                saved.getEmail(),
-                saved.getNotes(),
-                saved.getCreatedAt()
-        );
+        return toResponse(customerRepository.save(customer));
     }
 
     @PutMapping("/{id}")
@@ -85,16 +61,7 @@ public class CustomerController {
         customer.setPhone(request.phone());
         customer.setEmail(request.email());
         customer.setNotes(request.notes());
-
-        Customer saved = customerRepository.save(customer);
-        return new CustomerResponse(
-                saved.getId(),
-                saved.getName(),
-                saved.getPhone(),
-                saved.getEmail(),
-                saved.getNotes(),
-                saved.getCreatedAt()
-        );
+        return toResponse(customerRepository.save(customer));
     }
 
     @DeleteMapping("/{id}")
@@ -104,5 +71,16 @@ public class CustomerController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Customer not found");
         }
         customerRepository.deleteById(id);
+    }
+
+    private CustomerResponse toResponse(Customer customer) {
+        return new CustomerResponse(
+                customer.getId(),
+                customer.getName(),
+                customer.getPhone(),
+                customer.getEmail(),
+                customer.getNotes(),
+                customer.getCreatedAt()
+        );
     }
 }

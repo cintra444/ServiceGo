@@ -1,8 +1,8 @@
 package com.ServiceGo.domain.enums;
 
 public enum TripStatus {
-    SCHEDULED,
-    IN_PROGRESS,
-    COMPLETED,
-    CANCELED
+    AGENDADA,
+    EM_ANDAMENTO,
+    CONCLUIDA,
+    CANCELADA
 }

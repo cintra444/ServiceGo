@@ -11,6 +11,7 @@ import java.time.OffsetDateTime;
 
 public record TripRequest(
         Long customerId,
+        @NotNull Long veiculoId,
         @NotNull TripType tripType,
         @NotNull TripStatus status,
         @NotBlank @Size(max = 180) String origin,

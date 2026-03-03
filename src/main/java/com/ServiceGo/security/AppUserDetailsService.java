@@ -1,4 +1,4 @@
-package com.ServiceGo.infraestrutura.seguranca;
+package com.ServiceGo.security;
 
 import com.ServiceGo.domain.entity.AppUser;
 import com.ServiceGo.domain.repository.AppUserRepository;
@@ -30,4 +30,3 @@ public class AppUserDetailsService implements UserDetailsService {
                 .build();
     }
 }
-
