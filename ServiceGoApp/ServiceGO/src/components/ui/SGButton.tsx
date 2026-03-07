@@ -1,5 +1,5 @@
 import React from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { colors, radius, spacing } from "../../constants/theme";
 
 interface SGButtonProps {
@@ -7,9 +7,10 @@ interface SGButtonProps {
   onPress: () => void;
   variant?: "primary" | "secondary" | "danger";
   loading?: boolean;
+  icon?: React.ReactNode;
 }
 
-export function SGButton({ label, onPress, variant = "primary", loading = false }: SGButtonProps) {
+export function SGButton({ label, onPress, variant = "primary", loading = false, icon }: SGButtonProps) {
   return (
     <Pressable
       style={[styles.base, variantStyles[variant], loading ? styles.disabled : null]}
@@ -19,7 +20,10 @@ export function SGButton({ label, onPress, variant = "primary", loading = false 
       {loading ? (
         <ActivityIndicator color="#fff" />
       ) : (
-        <Text style={styles.text}>{label}</Text>
+        <View style={styles.content}>
+          {icon ? <View style={styles.icon}>{icon}</View> : null}
+          <Text style={styles.text}>{label}</Text>
+        </View>
       )}
     </Pressable>
   );
@@ -37,6 +41,16 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontWeight: "700",
     fontSize: 14,
+  },
+  content: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.xs,
+  },
+  icon: {
+    alignItems: "center",
+    justifyContent: "center",
   },
   disabled: {
     opacity: 0.7,
