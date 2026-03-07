@@ -6,14 +6,15 @@ import { Screen } from "../../components/ui/Screen";
 import { SGButton } from "../../components/ui/SGButton";
 import { SGCard } from "../../components/ui/SGCard";
 import { EmptyState } from "../../components/ui/EmptyState";
+import { SGInput } from "../../components/ui/SGInput";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { colors, spacing } from "../../constants/theme";
 import { expenseCategoryLabels, paymentMethodLabels, paymentStatusLabels } from "../../constants/labels";
-import { expensesApi, paymentsApi } from "../../services/api";
+import { expensesApi, paymentsApi, relatoriosApi } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { currency, dateTime } from "../../utils/format";
 import type { FinanceStackParamList } from "../../navigation/types";
-import type { Expense, Payment } from "../../types/api";
+import type { Expense, Payment, RelatorioFinanceiro } from "../../types/api";
 
 type Nav = NativeStackNavigationProp<FinanceStackParamList, "FinanceHome">;
 
@@ -22,7 +23,13 @@ export function FinanceScreen() {
   const { session } = useAuth();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [usuarioId, setUsuarioId] = useState("1");
+  const [veiculoId, setVeiculoId] = useState("");
+  const [inicio, setInicio] = useState("");
+  const [fim, setFim] = useState("");
+  const [relatorio, setRelatorio] = useState<RelatorioFinanceiro | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingRelatorio, setLoadingRelatorio] = useState(false);
 
   const load = useCallback(async () => {
     if (!session?.token) {
@@ -66,6 +73,46 @@ export function FinanceScreen() {
     await load();
   };
 
+  const loadRelatorioFinanceiro = async () => {
+    if (!session?.token) {
+      return;
+    }
+    const usuarioIdValue = Number(usuarioId);
+    const veiculoIdValue = Number(veiculoId);
+
+    if (!usuarioIdValue || !Number.isInteger(usuarioIdValue)) {
+      Alert.alert("Relatório", "Informe um usuário ID válido.");
+      return;
+    }
+    if (veiculoId.trim() && (!veiculoIdValue || !Number.isInteger(veiculoIdValue))) {
+      Alert.alert("Relatório", "Veículo ID inválido.");
+      return;
+    }
+    if (inicio.trim() && Number.isNaN(new Date(inicio).getTime())) {
+      Alert.alert("Relatório", "Campo início inválido. Use ISO_OFFSET_DATE_TIME.");
+      return;
+    }
+    if (fim.trim() && Number.isNaN(new Date(fim).getTime())) {
+      Alert.alert("Relatório", "Campo fim inválido. Use ISO_OFFSET_DATE_TIME.");
+      return;
+    }
+
+    try {
+      setLoadingRelatorio(true);
+      const data = await relatoriosApi.financeiro(session.token, {
+        usuarioId: usuarioIdValue,
+        veiculoId: veiculoId.trim() ? veiculoIdValue : undefined,
+        inicio: inicio.trim() ? inicio.trim() : undefined,
+        fim: fim.trim() ? fim.trim() : undefined,
+      });
+      setRelatorio(data);
+    } catch {
+      Alert.alert("Relatório", "Não foi possível carregar o relatório financeiro.");
+    } finally {
+      setLoadingRelatorio(false);
+    }
+  };
+
   return (
     <Screen>
       <SGCard title="Resumo financeiro">
@@ -81,6 +128,55 @@ export function FinanceScreen() {
         <SGButton label="Nova despesa" onPress={() => navigation.navigate("ExpenseForm")} />
       </View>
       <SGButton label="Atualizar financeiro" onPress={load} loading={loading} variant="secondary" />
+
+      <SGCard title="Relatório financeiro consolidado" subtitle="GET /api/relatorios/financeiro">
+        <SGInput label="Usuário ID" value={usuarioId} onChangeText={setUsuarioId} keyboardType="number-pad" />
+        <SGInput
+          label="Veículo ID (opcional)"
+          value={veiculoId}
+          onChangeText={setVeiculoId}
+          keyboardType="number-pad"
+        />
+        <SGInput
+          label="Início ISO_OFFSET_DATE_TIME (opcional)"
+          value={inicio}
+          onChangeText={setInicio}
+          placeholder="2026-03-01T00:00:00-03:00"
+          autoCapitalize="none"
+        />
+        <SGInput
+          label="Fim ISO_OFFSET_DATE_TIME (opcional)"
+          value={fim}
+          onChangeText={setFim}
+          placeholder="2026-03-31T23:59:59-03:00"
+          autoCapitalize="none"
+        />
+        <SGButton label="Carregar relatório" onPress={loadRelatorioFinanceiro} loading={loadingRelatorio} />
+
+        {relatorio ? (
+          <View style={styles.report}>
+            <Text style={styles.line}>
+              Período: {dateTime(relatorio.periodoInicio)} até {dateTime(relatorio.periodoFim)}
+            </Text>
+            <Text style={styles.line}>Total de corridas: {relatorio.totalCorridas}</Text>
+            <Text style={styles.line}>Km total: {Number(relatorio.kmTotal ?? 0).toFixed(2)} km</Text>
+            <Text style={styles.line}>Receita total: {currency(relatorio.receitaTotal)}</Text>
+            <Text style={styles.line}>Custos variáveis: {currency(relatorio.custosVariaveisTotal)}</Text>
+            <Text style={styles.line}>Depreciação no período: {currency(relatorio.depreciacaoTotalPeriodo)}</Text>
+            <Text style={styles.line}>Custo operacional total: {currency(relatorio.custoOperacionalTotal)}</Text>
+            <Text style={styles.line}>Custo operacional por km: {currency(relatorio.custoOperacionalPorKm)}</Text>
+            <Text style={[styles.line, { color: relatorio.lucroTotal >= 0 ? colors.success : colors.danger }]}>
+              Lucro total: {currency(relatorio.lucroTotal)}
+            </Text>
+            <Text style={styles.line}>Lucro por km: {currency(relatorio.lucroPorKm)}</Text>
+            <Text style={styles.line}>Lucro por corrida: {currency(relatorio.lucroPorCorrida)}</Text>
+            <Text style={styles.line}>Lucro por dia: {currency(relatorio.lucroPorDia)}</Text>
+            <Text style={styles.line}>Lucro por mês: {currency(relatorio.lucroPorMes)}</Text>
+          </View>
+        ) : (
+          <EmptyState message="Carregue o relatório para exibir os indicadores consolidados." />
+        )}
+      </SGCard>
 
       <SGCard title="Pagamentos">
         {payments.length === 0 ? <EmptyState message="Sem pagamentos." /> : null}
@@ -128,6 +224,9 @@ const styles = StyleSheet.create({
   line: {
     color: colors.subtext,
     fontSize: 13,
+  },
+  report: {
+    gap: spacing.xs,
   },
   row: {
     flexDirection: "row",

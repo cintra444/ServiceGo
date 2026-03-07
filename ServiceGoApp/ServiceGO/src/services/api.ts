@@ -12,6 +12,7 @@ import type {
   LoginResponse,
   Payment,
   PaymentRequest,
+  RelatorioFinanceiro,
   Trip,
   TripRequest,
   Veiculo,
@@ -135,5 +136,30 @@ export const configuracaoApi = {
       token,
       body: payload,
     });
+  },
+};
+
+interface RelatorioFinanceiroParams {
+  usuarioId: number;
+  veiculoId?: number;
+  inicio?: string;
+  fim?: string;
+}
+
+export const relatoriosApi = {
+  financeiro(token: string, params: RelatorioFinanceiroParams) {
+    const query = new URLSearchParams({
+      usuarioId: String(params.usuarioId),
+    });
+    if (params.veiculoId !== undefined) {
+      query.set("veiculoId", String(params.veiculoId));
+    }
+    if (params.inicio) {
+      query.set("inicio", params.inicio);
+    }
+    if (params.fim) {
+      query.set("fim", params.fim);
+    }
+    return apiRequest<RelatorioFinanceiro>(`/api/relatorios/financeiro?${query.toString()}`, { token });
   },
 };

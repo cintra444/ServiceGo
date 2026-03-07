@@ -28,6 +28,8 @@ export type ExpenseCategory =
   | "OUTRO";
 
 export type StatusAgendamento = "AGENDADO" | "CONCLUIDO" | "CANCELADO";
+export type DepreciacaoModo = "AUTOMATICA" | "MANUAL";
+export type DepreciacaoAlocacao = "POR_KM" | "MENSAL" | "ANUAL";
 
 export interface LoginRequest {
   email: string;
@@ -204,6 +206,16 @@ export interface ConfiguracaoUsuario {
   lembreteAtivo: boolean;
   minutosAntecedenciaLembrete: number;
   fusoHorario: string;
+  depreciacaoModo: DepreciacaoModo;
+  depreciacaoAlocacao: DepreciacaoAlocacao;
+  valorAtualVeiculo?: number | null;
+  valorEstimadoVeiculo?: number | null;
+  kmBaseDepreciacao?: number | null;
+  mesesBaseDepreciacao?: number | null;
+  anosBaseDepreciacao?: number | null;
+  valorManualPorKm?: number | null;
+  valorManualMensal?: number | null;
+  valorManualAnual?: number | null;
 }
 
 export interface ConfiguracaoUsuarioRequest {
@@ -211,4 +223,33 @@ export interface ConfiguracaoUsuarioRequest {
   lembreteAtivo: boolean;
   minutosAntecedenciaLembrete: number;
   fusoHorario: string;
+  depreciacaoModo: DepreciacaoModo;
+  depreciacaoAlocacao: DepreciacaoAlocacao;
+  valorAtualVeiculo?: number;
+  valorEstimadoVeiculo?: number;
+  kmBaseDepreciacao?: number;
+  mesesBaseDepreciacao?: number;
+  anosBaseDepreciacao?: number;
+  valorManualPorKm?: number;
+  valorManualMensal?: number;
+  valorManualAnual?: number;
+}
+
+export interface RelatorioFinanceiro {
+  usuarioId: number;
+  veiculoId?: number | null;
+  periodoInicio: string;
+  periodoFim: string;
+  totalCorridas: number;
+  kmTotal: number;
+  receitaTotal: number;
+  custosVariaveisTotal: number;
+  depreciacaoTotalPeriodo: number;
+  custoOperacionalTotal: number;
+  custoOperacionalPorKm: number;
+  lucroTotal: number;
+  lucroPorKm: number;
+  lucroPorCorrida: number;
+  lucroPorDia: number;
+  lucroPorMes: number;
 }

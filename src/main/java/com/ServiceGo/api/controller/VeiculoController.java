@@ -1,5 +1,7 @@
 package com.ServiceGo.api.controller;
 
+import com.ServiceGo.api.dto.veiculo.DepreciacaoKmRequest;
+import com.ServiceGo.api.dto.veiculo.DepreciacaoKmResponse;
 import com.ServiceGo.api.dto.veiculo.VeiculoRequest;
 import com.ServiceGo.api.dto.veiculo.VeiculoResponse;
 import com.ServiceGo.domain.entity.AppUser;
@@ -8,6 +10,8 @@ import com.ServiceGo.domain.enums.UserRole;
 import com.ServiceGo.domain.repository.AppUserRepository;
 import com.ServiceGo.domain.repository.VeiculoRepository;
 import jakarta.validation.Valid;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Locale;
 import org.springframework.http.HttpStatus;
@@ -80,6 +84,21 @@ public class VeiculoController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Veiculo nao encontrado");
         }
         veiculoRepository.deleteById(id);
+    }
+
+    @PostMapping("/depreciacao-km")
+    public DepreciacaoKmResponse calcularDepreciacaoPorKm(@Valid @RequestBody DepreciacaoKmRequest request) {
+        if (request.valorEstimado().compareTo(request.valorAtual()) > 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "valorEstimado nao pode ser maior que valorAtual"
+            );
+        }
+
+        BigDecimal depreciacaoTotal = request.valorAtual().subtract(request.valorEstimado());
+        BigDecimal depreciacaoPorKm = depreciacaoTotal.divide(request.kmRodado(), 6, RoundingMode.HALF_UP);
+
+        return new DepreciacaoKmResponse(depreciacaoTotal, depreciacaoPorKm);
     }
 
     private void applyRequest(VeiculoRequest request, Veiculo veiculo) {

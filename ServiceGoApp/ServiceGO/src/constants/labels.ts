@@ -1,4 +1,6 @@
 import type {
+  DepreciacaoAlocacao,
+  DepreciacaoModo,
   ExpenseCategory,
   PaymentMethod,
   PaymentStatus,
@@ -51,4 +53,15 @@ export const agendamentoStatusLabels: Record<StatusAgendamento, string> = {
   AGENDADO: "Agendado",
   CONCLUIDO: "Concluído",
   CANCELADO: "Cancelado",
+};
+
+export const depreciacaoModoLabels: Record<DepreciacaoModo, string> = {
+  AUTOMATICA: "Automática",
+  MANUAL: "Manual",
+};
+
+export const depreciacaoAlocacaoLabels: Record<DepreciacaoAlocacao, string> = {
+  POR_KM: "Por km",
+  MENSAL: "Mensal",
+  ANUAL: "Anual",
 };
