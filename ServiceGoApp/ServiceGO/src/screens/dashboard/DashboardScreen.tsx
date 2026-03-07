@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Image, StyleSheet, Text, View } from "react-native";
 import { Screen } from "../../components/ui/Screen";
 import { SGCard } from "../../components/ui/SGCard";
 import { SGButton } from "../../components/ui/SGButton";
@@ -75,6 +75,7 @@ export function DashboardScreen() {
     <Screen>
       <Text style={styles.header}>Painel do motorista</Text>
       <Text style={styles.sub}>Atualizado em {dateOnly(new Date().toISOString())}</Text>
+      <Image source={require("../../assets/ServiceGO.png")} style={styles.brandImage} resizeMode="contain" />
       {loading ? <ActivityIndicator color={colors.primary} /> : null}
 
       <View style={styles.kpiGrid}>
@@ -113,6 +114,12 @@ const styles = StyleSheet.create({
     color: colors.subtext,
     fontSize: 13,
     marginBottom: spacing.sm,
+  },
+  brandImage: {
+    width: "100%",
+    height: 180,
+    marginBottom: spacing.md,
+    borderRadius: 12,
   },
   kpiGrid: {
     gap: spacing.sm,

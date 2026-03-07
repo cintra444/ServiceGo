@@ -15,13 +15,17 @@ export function LoginScreen() {
   const [loading, setLoading] = useState(false);
 
   const onSubmit = async () => {
+    console.log("[ServiceGO][LoginScreen] Submit pressed:", { email: email.trim() });
     try {
       setLoading(true);
       await login(email.trim(), password);
+      console.log("[ServiceGO][LoginScreen] Login flow finished successfully");
     } catch (error) {
+      console.error("[ServiceGO][LoginScreen] Login flow failed:", error);
       const message = error instanceof ApiError ? error.message : "Não foi possível realizar o login";
       Alert.alert("Falha no login", message);
     } finally {
+      console.log("[ServiceGO][LoginScreen] Submit finished");
       setLoading(false);
     }
   };

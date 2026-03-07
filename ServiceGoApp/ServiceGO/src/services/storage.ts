@@ -12,17 +12,18 @@ export interface StoredSession {
 
 export const sessionStorage = {
   async saveSession(token: string, email: string, role: string) {
-    await AsyncStorage.setMany({
-      [TOKEN_KEY]: token,
-      [EMAIL_KEY]: email,
-      [ROLE_KEY]: role,
-    });
+    await AsyncStorage.multiSet([
+      [TOKEN_KEY, token],
+      [EMAIL_KEY, email],
+      [ROLE_KEY, role],
+    ]);
   },
   async clearSession() {
-    await AsyncStorage.removeMany([TOKEN_KEY, EMAIL_KEY, ROLE_KEY]);
+    await AsyncStorage.multiRemove([TOKEN_KEY, EMAIL_KEY, ROLE_KEY]);
   },
   async getSession(): Promise<StoredSession | null> {
-    const values = await AsyncStorage.getMany([TOKEN_KEY, EMAIL_KEY, ROLE_KEY]);
+    const pairs = await AsyncStorage.multiGet([TOKEN_KEY, EMAIL_KEY, ROLE_KEY]);
+    const values = Object.fromEntries(pairs);
     const token = values[TOKEN_KEY];
     const email = values[EMAIL_KEY];
     const role = values[ROLE_KEY];
