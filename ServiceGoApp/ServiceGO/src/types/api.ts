@@ -41,6 +41,7 @@ export interface LoginResponse {
   tokenType: string;
   email: string;
   role: `ROLE_${UserRole}` | string;
+  userId?: number;
 }
 
 export interface Customer {

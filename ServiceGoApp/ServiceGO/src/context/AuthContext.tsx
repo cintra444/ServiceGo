@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { authApi } from "../services/api";
 import { sessionStorage, type StoredSession } from "../services/storage";
+import { isTokenExpired, resolveUserId } from "../utils/session";
 
 type SessionData = StoredSession;
 
@@ -23,13 +24,30 @@ export function AuthProvider({ children }: React.PropsWithChildren) {
       console.log("[ServiceGO][Auth] Bootstrap started");
       try {
         const restored = await sessionStorage.getSession();
+        if (restored?.token && isTokenExpired(restored.token)) {
+          console.log("[ServiceGO][Auth] Bootstrap found expired token. Clearing session.");
+          await sessionStorage.clearSession();
+          if (mounted) {
+            setSession(null);
+          }
+          return;
+        }
+        let sessionWithUserId = restored;
+        if (restored?.token && !restored.userId) {
+          const resolvedId = await resolveUserId(restored.token);
+          if (resolvedId) {
+            sessionWithUserId = { ...restored, userId: resolvedId };
+            await sessionStorage.saveSession(restored.token, restored.email, restored.role, resolvedId);
+          }
+        }
         console.log("[ServiceGO][Auth] Bootstrap restored session:", {
-          hasSession: Boolean(restored?.token),
-          email: restored?.email ?? null,
-          role: restored?.role ?? null,
+          hasSession: Boolean(sessionWithUserId?.token),
+          email: sessionWithUserId?.email ?? null,
+          role: sessionWithUserId?.role ?? null,
+          userId: sessionWithUserId?.userId ?? null,
         });
         if (mounted) {
-          setSession(restored);
+          setSession(sessionWithUserId);
         }
       } catch (error) {
         console.error("[ServiceGO][Auth] Bootstrap error:", error);
@@ -57,9 +75,10 @@ export function AuthProvider({ children }: React.PropsWithChildren) {
         console.log("[ServiceGO][Auth] Login started:", { email });
         const result = await authApi.login({ email, password });
         console.log("[ServiceGO][Auth] Login success:", { email: result.email, role: result.role });
-        const nextSession = { token: result.token, email: result.email, role: result.role };
+        const resolvedId = result.userId ?? (await resolveUserId(result.token));
+        const nextSession = { token: result.token, email: result.email, role: result.role, userId: resolvedId };
         setSession(nextSession);
-        await sessionStorage.saveSession(nextSession.token, nextSession.email, nextSession.role);
+        await sessionStorage.saveSession(nextSession.token, nextSession.email, nextSession.role, nextSession.userId);
         console.log("[ServiceGO][Auth] Session persisted");
       },
       logout: async () => {

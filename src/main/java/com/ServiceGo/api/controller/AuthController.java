@@ -59,11 +59,13 @@ public class AuthController {
                     new UsernamePasswordAuthenticationToken(request.email().trim().toLowerCase(Locale.ROOT), request.password())
             );
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            String token = jwtService.generateToken(userDetails);
+            AppUser user = appUserRepository.findByEmailIgnoreCase(userDetails.getUsername())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+            String token = jwtService.generateToken(userDetails, user.getId());
             String role = userDetails.getAuthorities().stream().findFirst()
                     .map(grantedAuthority -> grantedAuthority.getAuthority())
                     .orElse("ROLE_MOTORISTA");
-            return new LoginResponse(token, "Bearer", userDetails.getUsername(), role);
+            return new LoginResponse(token, "Bearer", userDetails.getUsername(), role, user.getId());
         } catch (BadCredentialsException ex) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }

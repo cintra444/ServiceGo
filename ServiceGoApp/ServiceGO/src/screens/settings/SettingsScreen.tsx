@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { Alert, StyleSheet, Text } from "react-native";
 import { Screen } from "../../components/ui/Screen";
 import { SGCard } from "../../components/ui/SGCard";
@@ -16,7 +16,6 @@ export function SettingsScreen() {
   const { session, logout } = useAuth();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [usuarioId, setUsuarioId] = useState("1");
   const [sincronizarCalendario, setSincronizarCalendario] = useState("true");
   const [lembreteAtivo, setLembreteAtivo] = useState("true");
   const [minutos, setMinutos] = useState("30");
@@ -72,14 +71,14 @@ export function SettingsScreen() {
     setValorManualAnual(config.valorManualAnual == null ? "" : String(config.valorManualAnual));
   };
 
-  const usuarioIdValue = useMemo(() => Number(usuarioId), [usuarioId]);
+  const usuarioIdValue = session?.userId;
 
   const onLoadConfig = async () => {
     if (!session?.token) {
       return;
     }
     if (!usuarioIdValue) {
-      Alert.alert("Configuração", "Informe um usuário válido para carregar.");
+      Alert.alert("Configuração", "Não foi possível identificar seu usuário na sessão.");
       return;
     }
     try {
@@ -118,7 +117,7 @@ export function SettingsScreen() {
     }
     const minutosValue = Number(minutos);
     if (!usuarioIdValue || !Number.isInteger(minutosValue) || minutosValue < 1) {
-      Alert.alert("Configuração", "Informe usuário e minutos válidos.");
+      Alert.alert("Configuração", "Não foi possível identificar usuário ou minutos inválidos.");
       return;
     }
     const valorAtual = parseNumber(valorAtualVeiculo);
@@ -213,7 +212,7 @@ export function SettingsScreen() {
       </SGCard>
 
       <SGCard title="Configurações do usuário" subtitle="Agenda e depreciação">
-        <SGInput label="Usuário ID" value={usuarioId} onChangeText={setUsuarioId} keyboardType="number-pad" />
+        <Text style={styles.hint}>Usuário da sessão: {usuarioIdValue ?? "-"}</Text>
         <SGButton label="Carregar configurações" onPress={onLoadConfig} loading={loadingConfig} variant="secondary" />
         <ChipSelect
           label="Sincronizar calendário"

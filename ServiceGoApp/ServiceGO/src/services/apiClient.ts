@@ -114,6 +114,9 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
 
   if (!response.ok) {
     console.error("[ServiceGO][API] HTTP error payload:", { method, url, status: response.status, payload });
+    if (response.status === 401 || response.status === 403) {
+      throw new ApiError("Sessão inválida ou expirada. Faça login novamente.", response.status);
+    }
     const message =
       (payload && typeof payload.message === "string" && payload.message) ||
       (payload && typeof payload.error === "string" && payload.error) ||

@@ -26,18 +26,26 @@ public class JwtService {
     }
 
     public String generateToken(UserDetails userDetails) {
+        return generateToken(userDetails, null);
+    }
+
+    public String generateToken(UserDetails userDetails, Long userId) {
         Instant now = Instant.now();
         Instant expiration = now.plus(expirationHours, ChronoUnit.HOURS);
 
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .subject(userDetails.getUsername())
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(expiration))
                 .claim("authorities", userDetails.getAuthorities().stream()
                         .map(grantedAuthority -> grantedAuthority.getAuthority())
-                        .toList())
-                .signWith(secretKey)
-                .compact();
+                        .toList());
+
+        if (userId != null) {
+            builder.claim("userId", userId);
+        }
+
+        return builder.signWith(secretKey).compact();
     }
 
     public String extractUsername(String token) {

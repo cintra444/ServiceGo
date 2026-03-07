@@ -19,7 +19,6 @@ export function ScheduleScreen() {
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [loading, setLoading] = useState(false);
   const [tripId, setTripId] = useState("");
-  const [usuarioId, setUsuarioId] = useState("1");
   const [titulo, setTitulo] = useState("");
   const [localEvento, setLocalEvento] = useState("");
   const [inicioEm, setInicioEm] = useState(new Date().toISOString());
@@ -53,14 +52,18 @@ export function ScheduleScreen() {
     if (!session?.token) {
       return;
     }
-    if (!tripId || !usuarioId || !titulo.trim()) {
-      Alert.alert("Agenda", "Preencha tripId, usuarioId e título.");
+    if (!tripId || !titulo.trim()) {
+      Alert.alert("Agenda", "Preencha tripId e título.");
+      return;
+    }
+    if (!session.userId) {
+      Alert.alert("Agenda", "Não foi possível identificar seu usuário na sessão.");
       return;
     }
     try {
       await agendamentosApi.create(session.token, {
         tripId: Number(tripId),
-        usuarioId: Number(usuarioId),
+        usuarioId: session.userId,
         titulo: titulo.trim(),
         descricao: undefined,
         localEvento: localEvento || undefined,
@@ -118,7 +121,7 @@ export function ScheduleScreen() {
     <Screen>
       <SGCard title="Novo agendamento" subtitle="Datas em ISO: 2026-03-03T10:30:00-03:00">
         <SGInput label="Trip ID" value={tripId} onChangeText={setTripId} keyboardType="number-pad" />
-        <SGInput label="Usuário ID" value={usuarioId} onChangeText={setUsuarioId} keyboardType="number-pad" />
+        <Text style={styles.line}>Usuário da sessão: {session?.userId ?? "-"}</Text>
         <SGInput label="Título" value={titulo} onChangeText={setTitulo} />
         <SGInput label="Local" value={localEvento} onChangeText={setLocalEvento} />
         <SGInput label="Início (ISO)" value={inicioEm} onChangeText={setInicioEm} />

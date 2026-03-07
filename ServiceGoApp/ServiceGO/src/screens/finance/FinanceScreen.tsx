@@ -23,7 +23,6 @@ export function FinanceScreen() {
   const { session } = useAuth();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [usuarioId, setUsuarioId] = useState("1");
   const [veiculoId, setVeiculoId] = useState("");
   const [inicio, setInicio] = useState("");
   const [fim, setFim] = useState("");
@@ -77,11 +76,11 @@ export function FinanceScreen() {
     if (!session?.token) {
       return;
     }
-    const usuarioIdValue = Number(usuarioId);
+    const usuarioIdValue = session.userId;
     const veiculoIdValue = Number(veiculoId);
 
-    if (!usuarioIdValue || !Number.isInteger(usuarioIdValue)) {
-      Alert.alert("Relatório", "Informe um usuário ID válido.");
+    if (!usuarioIdValue) {
+      Alert.alert("Relatório", "Não foi possível identificar seu usuário na sessão.");
       return;
     }
     if (veiculoId.trim() && (!veiculoIdValue || !Number.isInteger(veiculoIdValue))) {
@@ -130,7 +129,7 @@ export function FinanceScreen() {
       <SGButton label="Atualizar financeiro" onPress={load} loading={loading} variant="secondary" />
 
       <SGCard title="Relatório financeiro consolidado" subtitle="GET /api/relatorios/financeiro">
-        <SGInput label="Usuário ID" value={usuarioId} onChangeText={setUsuarioId} keyboardType="number-pad" />
+        <Text style={styles.line}>Usuário da sessão: {session.userId ?? "-"}</Text>
         <SGInput
           label="Veículo ID (opcional)"
           value={veiculoId}
