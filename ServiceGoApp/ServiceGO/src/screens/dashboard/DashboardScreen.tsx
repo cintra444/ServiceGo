@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Image, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { Screen } from "../../components/ui/Screen";
 import { SGCard } from "../../components/ui/SGCard";
 import { SGButton } from "../../components/ui/SGButton";
@@ -73,27 +74,29 @@ export function DashboardScreen() {
 
   return (
     <Screen>
-      <Text style={styles.header}>Painel do motorista</Text>
+      <View style={styles.headerRow}>
+        <Ionicons name="speedometer-outline" size={22} color={colors.primaryDark} />
+        <Text style={styles.header}>Painel do motorista</Text>
+      </View>
       <Text style={styles.sub}>Atualizado em {dateOnly(new Date().toISOString())}</Text>
-      <Image source={require("../../assets/ServiceGO.png")} style={styles.brandImage} resizeMode="contain" />
       {loading ? <ActivityIndicator color={colors.primary} /> : null}
 
       <View style={styles.kpiGrid}>
-        <SGCard title="Corridas hoje">
+        <SGCard title="Corridas hoje" style={styles.softCard}>
           <Text style={styles.kpi}>{data.corridasHoje}</Text>
         </SGCard>
-        <SGCard title="Em andamento">
+        <SGCard title="Em andamento" style={styles.softCard}>
           <Text style={styles.kpi}>{data.corridasEmAndamento}</Text>
         </SGCard>
-        <SGCard title="Receita do mês">
+        <SGCard title="Receita do mês" style={styles.softCard}>
           <Text style={styles.kpi}>{currency(data.receitaMes)}</Text>
         </SGCard>
-        <SGCard title="Despesas do mês">
+        <SGCard title="Despesas do mês" style={styles.softCard}>
           <Text style={styles.kpi}>{currency(data.despesasMes)}</Text>
         </SGCard>
       </View>
 
-      <SGCard title="Saldo estimado do mês">
+      <SGCard title="Saldo estimado do mês" style={styles.softCard}>
         <Text style={[styles.kpi, { color: lucroMes >= 0 ? colors.success : colors.danger }]}>
           {currency(lucroMes)}
         </Text>
@@ -105,6 +108,11 @@ export function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
   header: {
     fontSize: 24,
     fontWeight: "800",
@@ -115,18 +123,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginBottom: spacing.sm,
   },
-  brandImage: {
-    width: "100%",
-    height: 180,
-    marginBottom: spacing.md,
-    borderRadius: 12,
-  },
   kpiGrid: {
     gap: spacing.sm,
   },
+  softCard: {
+    backgroundColor: "#F9FCFF",
+    borderColor: "#E6EEF6",
+    borderWidth: 1,
+  },
   kpi: {
     color: colors.text,
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "700",
   },
 });

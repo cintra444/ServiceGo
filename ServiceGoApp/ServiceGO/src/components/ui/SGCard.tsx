@@ -1,16 +1,17 @@
 import React from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
 import { colors, radius, spacing } from "../../constants/theme";
 
 interface SGCardProps {
   title?: string;
   subtitle?: string;
   children?: React.ReactNode;
+  style?: StyleProp<ViewStyle>;
 }
 
-export function SGCard({ title, subtitle, children }: SGCardProps) {
+export function SGCard({ title, subtitle, children, style }: SGCardProps) {
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, style]}>
       {title ? <Text style={styles.title}>{title}</Text> : null}
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       {children}

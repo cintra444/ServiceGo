@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Alert, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, StyleSheet, Text, View } from "react-native";
 import { Screen } from "../../components/ui/Screen";
 import { SGCard } from "../../components/ui/SGCard";
 import { SGInput } from "../../components/ui/SGInput";
@@ -7,6 +7,7 @@ import { SGButton } from "../../components/ui/SGButton";
 import { colors, spacing } from "../../constants/theme";
 import { useAuth } from "../../context/AuthContext";
 import { ApiError } from "../../services/apiClient";
+import serviceGoLogo from "../../assets/ServiceGO.png";
 
 export function LoginScreen() {
   const { login } = useAuth();
@@ -33,9 +34,12 @@ export function LoginScreen() {
   return (
     <Screen scroll={false}>
       <View style={styles.wrapper}>
-        <Text style={styles.brand}>ServiceGo</Text>
-        <Text style={styles.subtitle}>Gestão profissional de corridas</Text>
-        <SGCard>
+        <View style={styles.header}>
+          <Image source={serviceGoLogo} style={styles.logo} resizeMode="contain" />
+          <Text style={styles.brand}>ServiceGo</Text>
+          <Text style={styles.subtitle}>Gestão profissional de corridas</Text>
+        </View>
+        <SGCard style={styles.loginCard}>
           <SGInput
             label="E-mail"
             value={email}
@@ -67,18 +71,35 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: spacing.md,
   },
+  header: {
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  logo: {
+    width: 210,
+    height: 110,
+  },
+  loginCard: {
+    backgroundColor: colors.bg,
+    borderWidth: 0,
+    borderColor: "transparent",
+    shadowColor: "transparent",
+    elevation: 0,
+  },
   brand: {
     fontSize: 34,
     fontWeight: "800",
-    color: colors.primaryDark,
+    color: "#073B5A",
+    textAlign: "center",
   },
   subtitle: {
     fontSize: 15,
-    color: colors.subtext,
+    color: "#1A4E75",
+    textAlign: "center",
     marginBottom: spacing.md,
   },
   hint: {
     fontSize: 12,
-    color: colors.subtext,
+    color: "#1A4E75",
   },
 });
