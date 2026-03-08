@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { Alert } from "react-native";
+import { Alert, StyleSheet, Text, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { Ionicons } from "@expo/vector-icons";
 import { Screen } from "../../components/ui/Screen";
 import { SGCard } from "../../components/ui/SGCard";
 import { SGInput } from "../../components/ui/SGInput";
@@ -8,6 +9,7 @@ import { SGButton } from "../../components/ui/SGButton";
 import { ChipSelect } from "../../components/ui/ChipSelect";
 import { useAuth } from "../../context/AuthContext";
 import { veiculosApi } from "../../services/api";
+import { colors, spacing } from "../../constants/theme";
 import { cleanText, parseNumber } from "../../utils/format";
 import type { VehiclesStackParamList } from "../../navigation/types";
 
@@ -23,13 +25,14 @@ export function VehicleFormScreen({ navigation, route }: Props) {
   const [cor, setCor] = useState(veiculo?.cor ?? "");
   const [ativo, setAtivo] = useState(veiculo?.ativo ? "true" : "false");
   const [kmAtual, setKmAtual] = useState(veiculo?.kmAtual ? String(veiculo.kmAtual) : "0");
-  const [donoUsuarioId, setDonoUsuarioId] = useState(
-    veiculo?.donoUsuarioId ? String(veiculo.donoUsuarioId) : "1",
-  );
 
   const submit = async () => {
     if (!session?.token || !modelo.trim() || !placa.trim()) {
       Alert.alert("Veículo", "Preencha modelo e placa.");
+      return;
+    }
+    if (!session.userId) {
+      Alert.alert("Veículo", "Não foi possível identificar o motorista da sessão.");
       return;
     }
     const payload = {
@@ -39,10 +42,10 @@ export function VehicleFormScreen({ navigation, route }: Props) {
       cor: cleanText(cor),
       ativo: ativo === "true",
       kmAtual: parseNumber(kmAtual) ?? 0,
-      donoUsuarioId: Number(donoUsuarioId),
+      donoUsuarioId: session.userId,
     };
-    if (!payload.ano || !payload.donoUsuarioId) {
-      Alert.alert("Veículo", "Informe ano e dono do veículo (ID usuário).");
+    if (!payload.ano) {
+      Alert.alert("Veículo", "Informe um ano válido.");
       return;
     }
     try {
@@ -62,17 +65,27 @@ export function VehicleFormScreen({ navigation, route }: Props) {
 
   return (
     <Screen>
-      <SGCard subtitle="donoUsuarioId deve ser um usuário existente no backend.">
-        <SGInput label="Modelo" value={modelo} onChangeText={setModelo} />
-        <SGInput label="Placa" value={placa} onChangeText={setPlaca} autoCapitalize="characters" />
-        <SGInput label="Ano" value={ano} onChangeText={setAno} keyboardType="number-pad" />
-        <SGInput label="Cor" value={cor ?? ""} onChangeText={setCor} />
-        <SGInput label="KM atual" value={kmAtual} onChangeText={setKmAtual} keyboardType="decimal-pad" />
+      <SGCard>
+        <View style={styles.ownerRow}>
+          <Ionicons name="person-circle-outline" size={18} color={colors.subtext} />
+          <Text style={styles.ownerText}>Motorista vinculado: {veiculo?.donoNome ?? session?.email ?? "-"}</Text>
+        </View>
+        <SGInput label="Modelo" value={modelo} onChangeText={setModelo} placeholder="Ex: Onix, HB20, Corolla" />
         <SGInput
-          label="ID do dono (usuário)"
-          value={donoUsuarioId}
-          onChangeText={setDonoUsuarioId}
-          keyboardType="number-pad"
+          label="Placa"
+          value={placa}
+          onChangeText={setPlaca}
+          autoCapitalize="characters"
+          placeholder="Ex: ABC1D23"
+        />
+        <SGInput label="Ano" value={ano} onChangeText={setAno} keyboardType="number-pad" />
+        <SGInput label="Cor" value={cor ?? ""} onChangeText={setCor} placeholder="Ex: Branco, Prata, Preto" />
+        <SGInput
+          label="KM atual"
+          value={kmAtual}
+          onChangeText={setKmAtual}
+          keyboardType="decimal-pad"
+          placeholder="Ex: 45230"
         />
         <ChipSelect
           label="Ativo"
@@ -83,8 +96,25 @@ export function VehicleFormScreen({ navigation, route }: Props) {
             { value: "false", label: "Não" },
           ]}
         />
-        <SGButton label={veiculo ? "Atualizar veículo" : "Criar veículo"} onPress={submit} loading={saving} />
+        <SGButton
+          label={veiculo ? "Atualizar veículo" : "Criar veículo"}
+          onPress={submit}
+          loading={saving}
+          icon={<Ionicons name={veiculo ? "create-outline" : "car-sport-outline"} size={18} color="#fff" />}
+        />
       </SGCard>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  ownerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  ownerText: {
+    color: colors.subtext,
+    fontSize: 12,
+  },
+});
