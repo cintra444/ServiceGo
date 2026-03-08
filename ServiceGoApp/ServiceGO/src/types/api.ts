@@ -30,6 +30,17 @@ export type ExpenseCategory =
 export type StatusAgendamento = "AGENDADO" | "CONCLUIDO" | "CANCELADO";
 export type DepreciacaoModo = "AUTOMATICA" | "MANUAL";
 export type DepreciacaoAlocacao = "POR_KM" | "MENSAL" | "ANUAL";
+export type PlanType = "FREE" | "PRO";
+export type SubscriptionStatus = "TRIAL" | "ACTIVE" | "EXPIRED" | "CANCELED";
+export type SubscriptionSource = "MANUAL" | "GOOGLE" | "APPLE";
+
+export interface SubscriptionPlan {
+  type: PlanType;
+  status: SubscriptionStatus;
+  source: SubscriptionSource;
+  trialEndsAt?: string | null;
+  subscriptionEndsAt?: string | null;
+}
 
 export interface LoginRequest {
   email: string;
@@ -42,6 +53,7 @@ export interface LoginResponse {
   email: string;
   role: `ROLE_${UserRole}` | string;
   userId?: number;
+  plan?: SubscriptionPlan;
 }
 
 export interface Customer {

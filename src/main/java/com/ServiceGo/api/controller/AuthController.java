@@ -3,10 +3,14 @@ package com.ServiceGo.api.controller;
 import com.ServiceGo.api.dto.auth.ChangePasswordRequest;
 import com.ServiceGo.api.dto.auth.LoginRequest;
 import com.ServiceGo.api.dto.auth.LoginResponse;
+import com.ServiceGo.api.dto.auth.PlanResponse;
 import com.ServiceGo.api.dto.auth.RegisterRequest;
 import com.ServiceGo.api.dto.auth.RegisterResponse;
 import com.ServiceGo.api.dto.auth.UserStatusUpdateRequest;
 import com.ServiceGo.domain.entity.AppUser;
+import com.ServiceGo.domain.enums.PlanType;
+import com.ServiceGo.domain.enums.SubscriptionSource;
+import com.ServiceGo.domain.enums.SubscriptionStatus;
 import com.ServiceGo.domain.enums.UserRole;
 import com.ServiceGo.domain.repository.AppUserRepository;
 import com.ServiceGo.security.JwtService;
@@ -65,7 +69,7 @@ public class AuthController {
             String role = userDetails.getAuthorities().stream().findFirst()
                     .map(grantedAuthority -> grantedAuthority.getAuthority())
                     .orElse("ROLE_MOTORISTA");
-            return new LoginResponse(token, "Bearer", userDetails.getUsername(), role, user.getId());
+            return new LoginResponse(token, "Bearer", userDetails.getUsername(), role, user.getId(), toPlanResponse(user));
         } catch (BadCredentialsException ex) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
@@ -87,6 +91,11 @@ public class AuthController {
         user.setRole(request.role() == null ? UserRole.MOTORISTA : request.role());
         user.setActive(true);
         user.setCreatedAt(OffsetDateTime.now());
+        user.setPlanType(PlanType.PRO);
+        user.setSubscriptionStatus(SubscriptionStatus.TRIAL);
+        user.setSubscriptionSource(SubscriptionSource.MANUAL);
+        user.setTrialEndsAt(OffsetDateTime.now().plusDays(30));
+        user.setSubscriptionEndsAt(null);
         AppUser saved = appUserRepository.save(user);
         return toRegisterResponse(saved);
     }
@@ -142,7 +151,18 @@ public class AuthController {
                 user.getEmail(),
                 user.getRole(),
                 user.isActive(),
-                user.getCreatedAt()
+                user.getCreatedAt(),
+                toPlanResponse(user)
+        );
+    }
+
+    private PlanResponse toPlanResponse(AppUser user) {
+        return new PlanResponse(
+                user.getPlanType(),
+                user.getSubscriptionStatus(),
+                user.getSubscriptionSource(),
+                user.getTrialEndsAt(),
+                user.getSubscriptionEndsAt()
         );
     }
 }

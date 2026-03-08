@@ -37,7 +37,7 @@ export function AuthProvider({ children }: React.PropsWithChildren) {
           const resolvedId = await resolveUserId(restored.token);
           if (resolvedId) {
             sessionWithUserId = { ...restored, userId: resolvedId };
-            await sessionStorage.saveSession(restored.token, restored.email, restored.role, resolvedId);
+            await sessionStorage.saveSession(restored.token, restored.email, restored.role, resolvedId, restored.plan);
           }
         }
         console.log("[ServiceGO][Auth] Bootstrap restored session:", {
@@ -45,6 +45,7 @@ export function AuthProvider({ children }: React.PropsWithChildren) {
           email: sessionWithUserId?.email ?? null,
           role: sessionWithUserId?.role ?? null,
           userId: sessionWithUserId?.userId ?? null,
+          plan: sessionWithUserId?.plan?.type ?? null,
         });
         if (mounted) {
           setSession(sessionWithUserId);
@@ -74,11 +75,27 @@ export function AuthProvider({ children }: React.PropsWithChildren) {
       login: async (email, password) => {
         console.log("[ServiceGO][Auth] Login started:", { email });
         const result = await authApi.login({ email, password });
-        console.log("[ServiceGO][Auth] Login success:", { email: result.email, role: result.role });
+        console.log("[ServiceGO][Auth] Login success:", {
+          email: result.email,
+          role: result.role,
+          plan: result.plan?.type ?? null,
+        });
         const resolvedId = result.userId ?? (await resolveUserId(result.token));
-        const nextSession = { token: result.token, email: result.email, role: result.role, userId: resolvedId };
+        const nextSession = {
+          token: result.token,
+          email: result.email,
+          role: result.role,
+          userId: resolvedId,
+          plan: result.plan,
+        };
         setSession(nextSession);
-        await sessionStorage.saveSession(nextSession.token, nextSession.email, nextSession.role, nextSession.userId);
+        await sessionStorage.saveSession(
+          nextSession.token,
+          nextSession.email,
+          nextSession.role,
+          nextSession.userId,
+          nextSession.plan,
+        );
         console.log("[ServiceGO][Auth] Session persisted");
       },
       logout: async () => {

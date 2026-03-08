@@ -5,6 +5,7 @@ public record LoginResponse(
         String tokenType,
         String email,
         String role,
-        Long userId
+        Long userId,
+        PlanResponse plan
 ) {
 }

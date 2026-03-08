@@ -1,6 +1,9 @@
 package com.ServiceGo.config;
 
 import com.ServiceGo.domain.entity.AppUser;
+import com.ServiceGo.domain.enums.PlanType;
+import com.ServiceGo.domain.enums.SubscriptionSource;
+import com.ServiceGo.domain.enums.SubscriptionStatus;
 import com.ServiceGo.domain.enums.UserRole;
 import com.ServiceGo.domain.repository.AppUserRepository;
 import java.time.OffsetDateTime;
@@ -45,6 +48,11 @@ public class AppUserSeeder implements CommandLineRunner {
         admin.setRole(UserRole.ADMINISTRADOR);
         admin.setActive(true);
         admin.setCreatedAt(OffsetDateTime.now());
+        admin.setPlanType(PlanType.PRO);
+        admin.setSubscriptionStatus(SubscriptionStatus.TRIAL);
+        admin.setSubscriptionSource(SubscriptionSource.MANUAL);
+        admin.setTrialEndsAt(OffsetDateTime.now().plusDays(30));
+        admin.setSubscriptionEndsAt(null);
         appUserRepository.save(admin);
     }
 }

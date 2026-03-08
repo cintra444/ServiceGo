@@ -7,13 +7,17 @@ import { SGCard } from "../../components/ui/SGCard";
 import { SGInput } from "../../components/ui/SGInput";
 import { SGButton } from "../../components/ui/SGButton";
 import { ChipSelect } from "../../components/ui/ChipSelect";
+import { PremiumGate } from "../../components/ui/PremiumGate";
 import { tripStatusLabels, tripTypeLabels } from "../../constants/labels";
 import { colors, spacing } from "../../constants/theme";
 import { useAuth } from "../../context/AuthContext";
-import { customersApi, tripsApi, veiculosApi } from "../../services/api";
+import { configuracaoApi, customersApi, tripsApi, veiculosApi } from "../../services/api";
+import { fuelSettingsStorage } from "../../services/storage";
 import { addEventToDeviceCalendar } from "../../utils/calendar";
-import { cleanText, parseNumber } from "../../utils/format";
-import type { TripStatus, TripType } from "../../types/api";
+import { cleanText, currency, parseNumber } from "../../utils/format";
+import { hasPremiumAccess } from "../../utils/plan";
+import { estimateTripProfit } from "../../utils/profitEstimator";
+import type { ConfiguracaoUsuario, TripStatus, TripType } from "../../types/api";
 import type { TripsStackParamList } from "../../navigation/types";
 
 type Props = NativeStackScreenProps<TripsStackParamList, "TripForm">;
@@ -44,6 +48,7 @@ const toIsoFromPtBr = (value: string) => {
 export function TripFormScreen({ navigation, route }: Props) {
   const trip = route.params?.trip;
   const { session } = useAuth();
+  const isPremium = hasPremiumAccess(session?.plan);
   const [saving, setSaving] = useState(false);
   const [customerId, setCustomerId] = useState<string>(trip?.customerId ? String(trip.customerId) : "");
   const [veiculoId, setVeiculoId] = useState<string>(String(trip?.veiculoId ?? ""));
@@ -55,6 +60,7 @@ export function TripFormScreen({ navigation, route }: Props) {
   const [startAt, setStartAt] = useState(toPtBrDateTime(trip?.startAt) || toPtBrDateTime(new Date().toISOString()));
   const [endAt, setEndAt] = useState(toPtBrDateTime(trip?.endAt));
   const [distanceKm, setDistanceKm] = useState(trip?.distanceKm ? String(trip.distanceKm) : "");
+  const [estimatedMinutes, setEstimatedMinutes] = useState("");
   const [estimatedAmount, setEstimatedAmount] = useState(
     trip?.estimatedAmount ? String(trip.estimatedAmount) : "",
   );
@@ -62,6 +68,9 @@ export function TripFormScreen({ navigation, route }: Props) {
   const [notes, setNotes] = useState(trip?.notes ?? "");
   const [customerOptions, setCustomerOptions] = useState<{ value: string; label: string }[]>([]);
   const [veiculoOptions, setVeiculoOptions] = useState<{ value: string; label: string }[]>([]);
+  const [config, setConfig] = useState<ConfiguracaoUsuario | null>(null);
+  const [fuelPrice, setFuelPrice] = useState<number>(0);
+  const [fuelEfficiencyKmPerLiter, setFuelEfficiencyKmPerLiter] = useState<number>(0);
 
   useEffect(() => {
     const loadOptions = async () => {
@@ -80,12 +89,19 @@ export function TripFormScreen({ navigation, route }: Props) {
             label: `${item.placa} - ${item.modelo}`,
           })),
         );
+        if (session.userId) {
+          const userConfig = await configuracaoApi.get(session.token, session.userId);
+          setConfig(userConfig);
+        }
+        const fuelSettings = await fuelSettingsStorage.get();
+        setFuelPrice(Number(fuelSettings.fuelPrice ?? 0));
+        setFuelEfficiencyKmPerLiter(Number(fuelSettings.fuelEfficiencyKmPerLiter ?? 0));
       } catch {
-        Alert.alert("Corrida", "Não foi possível carregar clientes e veículos.");
+        Alert.alert("Corrida", "Não foi possível carregar dados da calculadora.");
       }
     };
     loadOptions();
-  }, [session?.token]);
+  }, [session?.token, session?.userId]);
 
   const typeOptions = useMemo(
     () => Object.entries(tripTypeLabels).map(([value, label]) => ({ value, label })),
@@ -122,6 +138,78 @@ export function TripFormScreen({ navigation, route }: Props) {
         return "Ex: Uber, 99, PopMovie";
     }
   }, [tripType]);
+
+  const calculator = useMemo(() => {
+    const tripValue = parseNumber(actualAmount) ?? parseNumber(estimatedAmount) ?? 0;
+    const distanceValue = parseNumber(distanceKm) ?? 0;
+    const estimatedMinutesValue = parseNumber(estimatedMinutes) ?? 0;
+    const estimate = estimateTripProfit({
+      trip: {
+        id: 0,
+        veiculoId: Number(veiculoId || 0),
+        tripType,
+        status,
+        origin,
+        destination,
+        startAt: "",
+        distanceKm: distanceValue,
+        estimatedAmount: parseNumber(estimatedAmount),
+        actualAmount: parseNumber(actualAmount),
+      },
+      config,
+      fuelPrice,
+      fuelEfficiencyKmPerLiter,
+      estimatedMinutes: estimatedMinutesValue,
+    });
+    const fuelCost = estimate.fuelCost;
+    const depreciationCost = estimate.depreciationCost;
+    const totalCost = estimate.totalCost;
+    const realProfit = estimate.profit;
+    const profitPerKm = estimate.profitPerKm;
+    const profitPerHour = estimate.profitPerHour;
+
+    let label = "Estimativa indisponível";
+    let color = colors.subtext;
+    if (tripValue > 0 && distanceValue > 0 && estimatedMinutesValue > 0) {
+      if (profitPerKm >= 1.5 && realProfit > 0) {
+        label = "Corrida boa";
+        color = colors.success;
+      } else if (profitPerKm >= 0.8 && realProfit > 0) {
+        label = "Corrida média";
+        color = colors.warning;
+      } else {
+        label = "Corrida ruim";
+        color = colors.danger;
+      }
+    }
+
+    return {
+      tripValue,
+      estimatedMinutesValue,
+      fuelCost,
+      depreciationCost,
+      totalCost,
+      realProfit,
+      profitPerKm,
+      profitPerHour,
+      label,
+      color,
+      isReady: tripValue > 0 && distanceValue > 0 && estimatedMinutesValue > 0,
+    };
+  }, [
+    actualAmount,
+    config,
+    destination,
+    distanceKm,
+    estimatedAmount,
+    estimatedMinutes,
+    fuelEfficiencyKmPerLiter,
+    fuelPrice,
+    origin,
+    status,
+    tripType,
+    veiculoId,
+  ]);
 
   const submit = async () => {
     return submitTrip(false);
@@ -243,6 +331,13 @@ export function TripFormScreen({ navigation, route }: Props) {
           placeholder="Ex: 12,5"
         />
         <SGInput
+          label="Tempo estimado (min)"
+          value={estimatedMinutes}
+          onChangeText={setEstimatedMinutes}
+          keyboardType="number-pad"
+          placeholder="Ex: 22"
+        />
+        <SGInput
           label="Valor estimado"
           value={estimatedAmount}
           onChangeText={setEstimatedAmount}
@@ -263,14 +358,37 @@ export function TripFormScreen({ navigation, route }: Props) {
           loading={saving}
           icon={<Ionicons name={trip ? "create-outline" : "checkmark-circle-outline"} size={18} color="#fff" />}
         />
-        <SGButton
-          label={trip ? "Atualizar e adicionar ao calendário" : "Criar e adicionar ao calendário"}
-          onPress={submitAndAddToCalendar}
-          loading={saving}
-          variant="secondary"
-          icon={<Ionicons name="calendar-clear-outline" size={18} color="#fff" />}
-        />
+        {isPremium ? (
+          <SGButton
+            label={trip ? "Atualizar e adicionar ao calendário" : "Criar e adicionar ao calendário"}
+            onPress={submitAndAddToCalendar}
+            loading={saving}
+            variant="secondary"
+            icon={<Ionicons name="calendar-clear-outline" size={18} color="#fff" />}
+          />
+        ) : null}
       </SGCard>
+
+      {isPremium ? (
+        <SGCard title="Estimativa de lucro" subtitle="Baseada no combustivel e depreciacao configurados">
+          <Text style={styles.supportText}>Combustível: {currency(calculator.fuelCost)}</Text>
+          <Text style={styles.supportText}>Depreciação: {currency(calculator.depreciationCost)}</Text>
+          <Text style={styles.supportText}>Custo total: {currency(calculator.totalCost)}</Text>
+          <Text style={[styles.estimateValue, { color: calculator.realProfit >= 0 ? colors.success : colors.danger }]}>
+            Lucro estimado: {currency(calculator.realProfit)}
+          </Text>
+          <Text style={styles.supportText}>Lucro por km: {currency(calculator.profitPerKm)}</Text>
+          <Text style={styles.supportText}>Lucro por hora: {currency(calculator.profitPerHour)}/h</Text>
+          <Text style={[styles.estimateBadge, { color: calculator.color }]}>
+            {calculator.isReady ? calculator.label : "Preencha valor, distancia e tempo estimado"}
+          </Text>
+        </SGCard>
+      ) : (
+        <PremiumGate
+          title="Calculadora de lucro"
+          description="Libere a estimativa em tempo real da corrida e a opção de adicionar a corrida salva ao calendário do aparelho."
+        />
+      )}
 
       <SGCard>
         {!isAppTrip && customerOptions.length === 0 ? (
@@ -320,6 +438,14 @@ const styles = StyleSheet.create({
   supportText: {
     color: colors.subtext,
     fontSize: 12,
+  },
+  estimateValue: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  estimateBadge: {
+    fontSize: 14,
+    fontWeight: "700",
   },
 });
 

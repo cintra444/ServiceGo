@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
+import { HeaderHelpButton } from "../../components/ui/HeaderHelpButton";
 import { Screen } from "../../components/ui/Screen";
 import { SGCard } from "../../components/ui/SGCard";
 import { SGButton } from "../../components/ui/SGButton";
@@ -38,6 +39,17 @@ export function VehiclesScreen() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <HeaderHelpButton
+          title="Veiculos"
+          message="Aqui voce cadastra os veiculos usados nas corridas e despesas, com placa, modelo, ano e quilometragem."
+        />
+      ),
+    });
+  }, [navigation]);
 
   const remove = async (id: number) => {
     if (!session?.token) {

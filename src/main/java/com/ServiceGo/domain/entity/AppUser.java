@@ -1,5 +1,8 @@
 package com.ServiceGo.domain.entity;
 
+import com.ServiceGo.domain.enums.PlanType;
+import com.ServiceGo.domain.enums.SubscriptionSource;
+import com.ServiceGo.domain.enums.SubscriptionStatus;
 import com.ServiceGo.domain.enums.UserRole;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -37,6 +40,24 @@ public class AppUser {
 
     @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "plan_type", nullable = false, length = 20)
+    private PlanType planType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "subscription_status", nullable = false, length = 20)
+    private SubscriptionStatus subscriptionStatus;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "subscription_source", nullable = false, length = 20)
+    private SubscriptionSource subscriptionSource;
+
+    @Column(name = "trial_ends_at")
+    private OffsetDateTime trialEndsAt;
+
+    @Column(name = "subscription_ends_at")
+    private OffsetDateTime subscriptionEndsAt;
 
     public Long getId() {
         return id;
@@ -92,5 +113,45 @@ public class AppUser {
 
     public void setCreatedAt(OffsetDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public PlanType getPlanType() {
+        return planType;
+    }
+
+    public void setPlanType(PlanType planType) {
+        this.planType = planType;
+    }
+
+    public SubscriptionStatus getSubscriptionStatus() {
+        return subscriptionStatus;
+    }
+
+    public void setSubscriptionStatus(SubscriptionStatus subscriptionStatus) {
+        this.subscriptionStatus = subscriptionStatus;
+    }
+
+    public SubscriptionSource getSubscriptionSource() {
+        return subscriptionSource;
+    }
+
+    public void setSubscriptionSource(SubscriptionSource subscriptionSource) {
+        this.subscriptionSource = subscriptionSource;
+    }
+
+    public OffsetDateTime getTrialEndsAt() {
+        return trialEndsAt;
+    }
+
+    public void setTrialEndsAt(OffsetDateTime trialEndsAt) {
+        this.trialEndsAt = trialEndsAt;
+    }
+
+    public OffsetDateTime getSubscriptionEndsAt() {
+        return subscriptionEndsAt;
+    }
+
+    public void setSubscriptionEndsAt(OffsetDateTime subscriptionEndsAt) {
+        this.subscriptionEndsAt = subscriptionEndsAt;
     }
 }

@@ -9,6 +9,7 @@ public record RegisterResponse(
         String email,
         UserRole role,
         boolean active,
-        OffsetDateTime createdAt
+        OffsetDateTime createdAt,
+        PlanResponse plan
 ) {
 }

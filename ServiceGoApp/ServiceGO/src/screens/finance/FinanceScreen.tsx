@@ -1,13 +1,15 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
+import { HeaderHelpButton } from "../../components/ui/HeaderHelpButton";
 import { Screen } from "../../components/ui/Screen";
 import { SGButton } from "../../components/ui/SGButton";
 import { SGCard } from "../../components/ui/SGCard";
 import { ChipSelect } from "../../components/ui/ChipSelect";
 import { EmptyState } from "../../components/ui/EmptyState";
+import { PremiumGate } from "../../components/ui/PremiumGate";
 import { SGInput } from "../../components/ui/SGInput";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { colors, spacing } from "../../constants/theme";
@@ -15,6 +17,7 @@ import { expenseCategoryLabels, paymentMethodLabels, paymentStatusLabels } from 
 import { expensesApi, paymentsApi, relatoriosApi, veiculosApi } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { currency, dateTime } from "../../utils/format";
+import { hasPremiumAccess } from "../../utils/plan";
 import type { FinanceStackParamList } from "../../navigation/types";
 import type { Expense, Payment, RelatorioFinanceiro, Veiculo } from "../../types/api";
 
@@ -46,6 +49,7 @@ const toOffsetIso = (dateValue: string, endOfDay = false) => {
 export function FinanceScreen() {
   const navigation = useNavigation<Nav>();
   const { session } = useAuth();
+  const isPremium = hasPremiumAccess(session?.plan);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
@@ -80,6 +84,17 @@ export function FinanceScreen() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <HeaderHelpButton
+          title="Financeiro"
+          message="Aqui voce registra pagamentos, despesas e gera o relatorio consolidado do periodo para acompanhar lucro e custos."
+        />
+      ),
+    });
+  }, [navigation]);
 
   const totals = useMemo(() => {
     const totalReceitas = payments.reduce((sum, item) => sum + Number(item.amount ?? 0), 0);
@@ -173,64 +188,71 @@ export function FinanceScreen() {
         icon={<Ionicons name="refresh-circle-outline" size={18} color="#fff" />}
       />
 
-      <SGCard title="Relatório financeiro">
-        <ChipSelect
-          label="Veículo"
-          value={veiculoId}
-          onChange={setVeiculoId}
-          options={[
-            { value: "", label: "Todos" },
-            ...veiculos.map((item) => ({
-              value: String(item.id),
-              label: `${item.placa} - ${item.modelo}`,
-            })),
-          ]}
-        />
-        <SGInput
-          label="Data inicial (opcional)"
-          value={inicio}
-          onChangeText={setInicio}
-          placeholder="Ex: 01/03/2026"
-          keyboardType="numbers-and-punctuation"
-        />
-        <SGInput
-          label="Data final (opcional)"
-          value={fim}
-          onChangeText={setFim}
-          placeholder="Ex: 31/03/2026"
-          keyboardType="numbers-and-punctuation"
-        />
-        <SGButton
-          label="Gerar relatório"
-          onPress={loadRelatorioFinanceiro}
-          loading={loadingRelatorio}
-          icon={<Ionicons name="bar-chart-outline" size={18} color="#fff" />}
-        />
+      {isPremium ? (
+        <SGCard title="Relatório financeiro">
+          <ChipSelect
+            label="Veículo"
+            value={veiculoId}
+            onChange={setVeiculoId}
+            options={[
+              { value: "", label: "Todos" },
+              ...veiculos.map((item) => ({
+                value: String(item.id),
+                label: `${item.placa} - ${item.modelo}`,
+              })),
+            ]}
+          />
+          <SGInput
+            label="Data inicial (opcional)"
+            value={inicio}
+            onChangeText={setInicio}
+            placeholder="Ex: 01/03/2026"
+            keyboardType="numbers-and-punctuation"
+          />
+          <SGInput
+            label="Data final (opcional)"
+            value={fim}
+            onChangeText={setFim}
+            placeholder="Ex: 31/03/2026"
+            keyboardType="numbers-and-punctuation"
+          />
+          <SGButton
+            label="Gerar relatório"
+            onPress={loadRelatorioFinanceiro}
+            loading={loadingRelatorio}
+            icon={<Ionicons name="bar-chart-outline" size={18} color="#fff" />}
+          />
 
-        {relatorio ? (
-          <View style={styles.report}>
-            <Text style={styles.line}>
-              Período: {dateTime(relatorio.periodoInicio)} até {dateTime(relatorio.periodoFim)}
-            </Text>
-            <Text style={styles.line}>Total de corridas: {relatorio.totalCorridas}</Text>
-            <Text style={styles.line}>Km total: {Number(relatorio.kmTotal ?? 0).toFixed(2)} km</Text>
-            <Text style={styles.line}>Receita total: {currency(relatorio.receitaTotal)}</Text>
-            <Text style={styles.line}>Custos variáveis: {currency(relatorio.custosVariaveisTotal)}</Text>
-            <Text style={styles.line}>Depreciação no período: {currency(relatorio.depreciacaoTotalPeriodo)}</Text>
-            <Text style={styles.line}>Custo operacional total: {currency(relatorio.custoOperacionalTotal)}</Text>
-            <Text style={styles.line}>Custo operacional por km: {currency(relatorio.custoOperacionalPorKm)}</Text>
-            <Text style={[styles.line, { color: relatorio.lucroTotal >= 0 ? colors.success : colors.danger }]}>
-              Lucro total: {currency(relatorio.lucroTotal)}
-            </Text>
-            <Text style={styles.line}>Lucro por km: {currency(relatorio.lucroPorKm)}</Text>
-            <Text style={styles.line}>Lucro por corrida: {currency(relatorio.lucroPorCorrida)}</Text>
-            <Text style={styles.line}>Lucro por dia: {currency(relatorio.lucroPorDia)}</Text>
-            <Text style={styles.line}>Lucro por mês: {currency(relatorio.lucroPorMes)}</Text>
-          </View>
-        ) : (
-          <EmptyState message="Carregue o relatório para exibir os indicadores consolidados." />
-        )}
-      </SGCard>
+          {relatorio ? (
+            <View style={styles.report}>
+              <Text style={styles.line}>
+                Período: {dateTime(relatorio.periodoInicio)} até {dateTime(relatorio.periodoFim)}
+              </Text>
+              <Text style={styles.line}>Total de corridas: {relatorio.totalCorridas}</Text>
+              <Text style={styles.line}>Km total: {Number(relatorio.kmTotal ?? 0).toFixed(2)} km</Text>
+              <Text style={styles.line}>Receita total: {currency(relatorio.receitaTotal)}</Text>
+              <Text style={styles.line}>Custos variáveis: {currency(relatorio.custosVariaveisTotal)}</Text>
+              <Text style={styles.line}>Depreciação no período: {currency(relatorio.depreciacaoTotalPeriodo)}</Text>
+              <Text style={styles.line}>Custo operacional total: {currency(relatorio.custoOperacionalTotal)}</Text>
+              <Text style={styles.line}>Custo operacional por km: {currency(relatorio.custoOperacionalPorKm)}</Text>
+              <Text style={[styles.line, { color: relatorio.lucroTotal >= 0 ? colors.success : colors.danger }]}>
+                Lucro total: {currency(relatorio.lucroTotal)}
+              </Text>
+              <Text style={styles.line}>Lucro por km: {currency(relatorio.lucroPorKm)}</Text>
+              <Text style={styles.line}>Lucro por corrida: {currency(relatorio.lucroPorCorrida)}</Text>
+              <Text style={styles.line}>Lucro por dia: {currency(relatorio.lucroPorDia)}</Text>
+              <Text style={styles.line}>Lucro por mês: {currency(relatorio.lucroPorMes)}</Text>
+            </View>
+          ) : (
+            <EmptyState message="Carregue o relatório para exibir os indicadores consolidados." />
+          )}
+        </SGCard>
+      ) : (
+        <PremiumGate
+          title="Relatório financeiro"
+          description="Libere o relatório consolidado com lucro por km, por corrida, por dia, por mês e custo operacional."
+        />
+      )}
 
       <SGCard title="Pagamentos">
         {payments.length === 0 ? <EmptyState message="Sem pagamentos." /> : null}

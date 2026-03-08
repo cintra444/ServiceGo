@@ -1,12 +1,15 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Screen } from "../../components/ui/Screen";
+import { useNavigation } from "@react-navigation/native";
 import { SGCard } from "../../components/ui/SGCard";
 import { SGInput } from "../../components/ui/SGInput";
 import { SGButton } from "../../components/ui/SGButton";
+import { HeaderHelpButton } from "../../components/ui/HeaderHelpButton";
 import { ChipSelect } from "../../components/ui/ChipSelect";
 import { EmptyState } from "../../components/ui/EmptyState";
+import { PremiumGate } from "../../components/ui/PremiumGate";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { agendamentoStatusLabels } from "../../constants/labels";
 import { colors, spacing } from "../../constants/theme";
@@ -14,6 +17,7 @@ import { agendamentosApi, tripsApi } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { addEventToDeviceCalendar } from "../../utils/calendar";
 import { dateTime } from "../../utils/format";
+import { hasPremiumAccess } from "../../utils/plan";
 import type { Agendamento, StatusAgendamento } from "../../types/api";
 
 const toPtBrDateTime = (iso?: string | null) => {
@@ -40,7 +44,9 @@ const toIsoFromPtBr = (value: string) => {
 };
 
 export function ScheduleScreen() {
+  const navigation = useNavigation();
   const { session } = useAuth();
+  const isPremium = hasPremiumAccess(session?.plan);
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [tripOptions, setTripOptions] = useState<{ value: string; label: string }[]>([]);
   const [loading, setLoading] = useState(false);
@@ -73,6 +79,17 @@ export function ScheduleScreen() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <HeaderHelpButton
+          title="Agenda"
+          message="Aqui voce organiza compromissos ligados as corridas, altera status e pode enviar eventos para o calendario do aparelho."
+        />
+      ),
+    });
+  }, [navigation]);
 
   useEffect(() => {
     const loadTrips = async () => {
@@ -254,12 +271,19 @@ export function ScheduleScreen() {
               icon={<Ionicons name="close-circle-outline" size={18} color="#fff" />}
             />
           </View>
-          <SGButton
-            label="Adicionar ao calendário"
-            onPress={() => addToDeviceCalendar(item)}
-            variant="secondary"
-            icon={<Ionicons name="calendar-clear-outline" size={18} color="#fff" />}
-          />
+          {isPremium ? (
+            <SGButton
+              label="Adicionar ao calendário"
+              onPress={() => addToDeviceCalendar(item)}
+              variant="secondary"
+              icon={<Ionicons name="calendar-clear-outline" size={18} color="#fff" />}
+            />
+          ) : (
+            <PremiumGate
+              title="Calendário do aparelho"
+              description="Libere a criação do evento no calendário nativo para acompanhar cada agendamento fora do app."
+            />
+          )}
           <SGButton
             label="Excluir"
             onPress={() => remove(item.id)}

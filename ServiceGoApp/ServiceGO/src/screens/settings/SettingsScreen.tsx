@@ -1,5 +1,8 @@
-import React, { useState } from "react";
-import { Alert, StyleSheet, Text } from "react-native";
+import React, { useEffect, useLayoutEffect, useState } from "react";
+import { Alert, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { HeaderHelpButton } from "../../components/ui/HeaderHelpButton";
 import { Screen } from "../../components/ui/Screen";
 import { SGCard } from "../../components/ui/SGCard";
 import { SGInput } from "../../components/ui/SGInput";
@@ -7,12 +10,14 @@ import { SGButton } from "../../components/ui/SGButton";
 import { ChipSelect } from "../../components/ui/ChipSelect";
 import { useAuth } from "../../context/AuthContext";
 import { authApi, configuracaoApi } from "../../services/api";
+import { fuelSettingsStorage } from "../../services/storage";
 import { colors } from "../../constants/theme";
 import { depreciacaoAlocacaoLabels, depreciacaoModoLabels } from "../../constants/labels";
 import { parseNumber } from "../../utils/format";
 import type { ConfiguracaoUsuarioRequest, DepreciacaoAlocacao, DepreciacaoModo } from "../../types/api";
 
 export function SettingsScreen() {
+  const navigation = useNavigation();
   const { session, logout } = useAuth();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -30,6 +35,8 @@ export function SettingsScreen() {
   const [valorManualPorKm, setValorManualPorKm] = useState("");
   const [valorManualMensal, setValorManualMensal] = useState("");
   const [valorManualAnual, setValorManualAnual] = useState("");
+  const [fuelPrice, setFuelPrice] = useState("");
+  const [fuelEfficiency, setFuelEfficiency] = useState("");
   const [loadingConfig, setLoadingConfig] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
@@ -93,6 +100,44 @@ export function SettingsScreen() {
     }
   };
 
+  useEffect(() => {
+    if (!session?.token || !usuarioIdValue) {
+      return;
+    }
+    const loadInitialConfig = async () => {
+      try {
+        setLoadingConfig(true);
+        const config = await configuracaoApi.get(session.token, usuarioIdValue);
+        setConfigValues(config);
+      } catch {
+        Alert.alert("Configuração", "Não foi possível carregar configuração.");
+      } finally {
+        setLoadingConfig(false);
+      }
+    };
+    loadInitialConfig();
+  }, [session?.token, usuarioIdValue]);
+
+  useEffect(() => {
+    const loadFuelSettings = async () => {
+      const settings = await fuelSettingsStorage.get();
+      setFuelPrice(settings.fuelPrice == null ? "" : String(settings.fuelPrice));
+      setFuelEfficiency(settings.fuelEfficiencyKmPerLiter == null ? "" : String(settings.fuelEfficiencyKmPerLiter));
+    };
+    loadFuelSettings();
+  }, []);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <HeaderHelpButton
+          title="Ajustes"
+          message="Aqui voce altera senha, define lembretes, calendario e configuracoes de depreciacao usadas no relatorio financeiro."
+        />
+      ),
+    });
+  }, [navigation]);
+
   const onChangePassword = async () => {
     if (!session?.token || !currentPassword || !newPassword) {
       Alert.alert("Senha", "Preencha senha atual e nova senha.");
@@ -128,6 +173,8 @@ export function SettingsScreen() {
     const manualPorKm = parseNumber(valorManualPorKm);
     const manualMensal = parseNumber(valorManualMensal);
     const manualAnual = parseNumber(valorManualAnual);
+    const fuelPriceValue = parseNumber(fuelPrice);
+    const fuelEfficiencyValue = parseNumber(fuelEfficiency);
 
     if (isAutomatic) {
       if (valorAtual === undefined || valorEstimado === undefined) {
@@ -193,6 +240,10 @@ export function SettingsScreen() {
     try {
       setSavingConfig(true);
       const updated = await configuracaoApi.update(session.token, usuarioIdValue, payload);
+      await fuelSettingsStorage.save({
+        fuelPrice: fuelPriceValue,
+        fuelEfficiencyKmPerLiter: fuelEfficiencyValue,
+      });
       setConfigValues(updated);
       Alert.alert("Configuração", "Configuração salva.");
     } catch {
@@ -205,15 +256,40 @@ export function SettingsScreen() {
   return (
     <Screen>
       <SGCard title="Conta" subtitle={session?.email ?? "Usuário"}>
+        <View style={styles.infoRow}>
+          <Ionicons name="person-circle-outline" size={16} color={colors.subtext} />
+          <Text style={styles.hint}>Usuário da sessão: {usuarioIdValue ?? "-"}</Text>
+        </View>
         <SGInput label="Senha atual" value={currentPassword} onChangeText={setCurrentPassword} secureTextEntry />
-        <SGInput label="Nova senha" value={newPassword} onChangeText={setNewPassword} secureTextEntry />
-        <SGButton label="Alterar senha" onPress={onChangePassword} loading={savingPassword} />
-        <SGButton label="Sair da conta" onPress={logout} variant="danger" />
+        <SGInput
+          label="Nova senha"
+          value={newPassword}
+          onChangeText={setNewPassword}
+          secureTextEntry
+          placeholder="Digite sua nova senha"
+        />
+        <SGButton
+          label="Alterar senha"
+          onPress={onChangePassword}
+          loading={savingPassword}
+          icon={<Ionicons name="key-outline" size={18} color="#fff" />}
+        />
+        <SGButton
+          label="Sair da conta"
+          onPress={logout}
+          variant="danger"
+          icon={<Ionicons name="log-out-outline" size={18} color="#fff" />}
+        />
       </SGCard>
 
-      <SGCard title="Configurações do usuário" subtitle="Agenda e depreciação">
-        <Text style={styles.hint}>Usuário da sessão: {usuarioIdValue ?? "-"}</Text>
-        <SGButton label="Carregar configurações" onPress={onLoadConfig} loading={loadingConfig} variant="secondary" />
+      <SGCard title="Agenda" subtitle="Lembretes e calendario">
+        <SGButton
+          label="Atualizar configuracoes"
+          onPress={onLoadConfig}
+          loading={loadingConfig}
+          variant="secondary"
+          icon={<Ionicons name="refresh-circle-outline" size={18} color="#fff" />}
+        />
         <ChipSelect
           label="Sincronizar calendário"
           value={sincronizarCalendario}
@@ -232,11 +308,24 @@ export function SettingsScreen() {
             { value: "false", label: "Não" },
           ]}
         />
-        <SGInput label="Minutos de antecedência" value={minutos} onChangeText={setMinutos} keyboardType="number-pad" />
-        <SGInput label="Fuso horário" value={fusoHorario} onChangeText={setFusoHorario} />
+        <SGInput
+          label="Minutos de antecedência"
+          value={minutos}
+          onChangeText={setMinutos}
+          keyboardType="number-pad"
+          placeholder="Ex: 30"
+        />
+        <SGInput
+          label="Fuso horário"
+          value={fusoHorario}
+          onChangeText={setFusoHorario}
+          placeholder="Ex: America/Sao_Paulo"
+        />
+      </SGCard>
 
+      <SGCard title="Depreciação" subtitle="Calculo do custo do veículo">
         <ChipSelect
-          label="Depreciação: modo"
+          label="Modo"
           value={depreciacaoModo}
           onChange={(next) => setDepreciacaoModo(next as DepreciacaoModo)}
           options={[
@@ -245,7 +334,7 @@ export function SettingsScreen() {
           ]}
         />
         <ChipSelect
-          label="Depreciação: alocação"
+          label="Alocação"
           value={depreciacaoAlocacao}
           onChange={(next) => setDepreciacaoAlocacao(next as DepreciacaoAlocacao)}
           options={[
@@ -257,18 +346,23 @@ export function SettingsScreen() {
 
         {isAutomatic ? (
           <>
-            <Text style={styles.hint}>Modo automático: informe valores do veículo e apenas 1 base pela alocação.</Text>
+            <View style={styles.infoRow}>
+              <Ionicons name="flash-outline" size={16} color={colors.subtext} />
+              <Text style={styles.hint}>Informe os valores do veículo e apenas uma base de cálculo.</Text>
+            </View>
             <SGInput
               label="Valor atual do veículo"
               value={valorAtualVeiculo}
               onChangeText={setValorAtualVeiculo}
               keyboardType="decimal-pad"
+              placeholder="Ex: 65000"
             />
             <SGInput
               label="Valor estimado do veículo"
               value={valorEstimadoVeiculo}
               onChangeText={setValorEstimadoVeiculo}
               keyboardType="decimal-pad"
+              placeholder="Ex: 30000"
             />
             {isPorKm ? (
               <SGInput
@@ -276,6 +370,7 @@ export function SettingsScreen() {
                 value={kmBaseDepreciacao}
                 onChangeText={setKmBaseDepreciacao}
                 keyboardType="decimal-pad"
+                placeholder="Ex: 120000"
               />
             ) : null}
             {isMensal ? (
@@ -284,6 +379,7 @@ export function SettingsScreen() {
                 value={mesesBaseDepreciacao}
                 onChangeText={setMesesBaseDepreciacao}
                 keyboardType="number-pad"
+                placeholder="Ex: 48"
               />
             ) : null}
             {isAnual ? (
@@ -292,18 +388,23 @@ export function SettingsScreen() {
                 value={anosBaseDepreciacao}
                 onChangeText={setAnosBaseDepreciacao}
                 keyboardType="decimal-pad"
+                placeholder="Ex: 4"
               />
             ) : null}
           </>
         ) : (
           <>
-            <Text style={styles.hint}>Modo manual: informe somente 1 valor manual conforme alocação.</Text>
+            <View style={styles.infoRow}>
+              <Ionicons name="create-outline" size={16} color={colors.subtext} />
+              <Text style={styles.hint}>Informe apenas um valor manual conforme a alocação escolhida.</Text>
+            </View>
             {isPorKm ? (
               <SGInput
                 label="Valor manual por km"
                 value={valorManualPorKm}
                 onChangeText={setValorManualPorKm}
                 keyboardType="decimal-pad"
+                placeholder="Ex: 0,45"
               />
             ) : null}
             {isMensal ? (
@@ -312,6 +413,7 @@ export function SettingsScreen() {
                 value={valorManualMensal}
                 onChangeText={setValorManualMensal}
                 keyboardType="decimal-pad"
+                placeholder="Ex: 850"
               />
             ) : null}
             {isAnual ? (
@@ -320,18 +422,47 @@ export function SettingsScreen() {
                 value={valorManualAnual}
                 onChangeText={setValorManualAnual}
                 keyboardType="decimal-pad"
+                placeholder="Ex: 10200"
               />
             ) : null}
           </>
         )}
 
-        <SGButton label="Salvar configurações" onPress={onSaveConfig} loading={savingConfig} />
+      </SGCard>
+
+      <SGCard title="Combustível" subtitle="Usado na estimativa de lucro da corrida">
+        <SGInput
+          label="Preço do combustível"
+          value={fuelPrice}
+          onChangeText={setFuelPrice}
+          keyboardType="decimal-pad"
+          placeholder="Ex: 5,89"
+        />
+        <SGInput
+          label="Consumo médio (km/l)"
+          value={fuelEfficiency}
+          onChangeText={setFuelEfficiency}
+          keyboardType="decimal-pad"
+          placeholder="Ex: 11,5"
+        />
+        <Text style={styles.hint}>Esses valores são salvos no app e usados para estimar lucro por corrida.</Text>
+        <SGButton
+          label="Salvar configurações"
+          onPress={onSaveConfig}
+          loading={savingConfig}
+          icon={<Ionicons name="save-outline" size={18} color="#fff" />}
+        />
       </SGCard>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
   hint: {
     color: colors.subtext,
     fontSize: 12,
