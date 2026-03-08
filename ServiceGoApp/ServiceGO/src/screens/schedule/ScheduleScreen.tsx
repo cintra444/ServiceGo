@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { Screen } from "../../components/ui/Screen";
 import { SGCard } from "../../components/ui/SGCard";
 import { SGInput } from "../../components/ui/SGInput";
@@ -9,19 +10,44 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { agendamentoStatusLabels } from "../../constants/labels";
 import { colors, spacing } from "../../constants/theme";
-import { agendamentosApi } from "../../services/api";
+import { agendamentosApi, tripsApi } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
+import { addEventToDeviceCalendar } from "../../utils/calendar";
 import { dateTime } from "../../utils/format";
 import type { Agendamento, StatusAgendamento } from "../../types/api";
+
+const toPtBrDateTime = (iso?: string | null) => {
+  if (!iso) {
+    return "";
+  }
+  const dt = new Date(iso);
+  if (Number.isNaN(dt.getTime())) {
+    return "";
+  }
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${pad(dt.getDate())}/${pad(dt.getMonth() + 1)}/${dt.getFullYear()} ${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+};
+
+const toIsoFromPtBr = (value: string) => {
+  const normalized = value.trim();
+  const match = normalized.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})$/);
+  if (!match) {
+    return undefined;
+  }
+  const [, dd, mm, yyyy, hh, min] = match;
+  const date = new Date(Number(yyyy), Number(mm) - 1, Number(dd), Number(hh), Number(min), 0, 0);
+  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+};
 
 export function ScheduleScreen() {
   const { session } = useAuth();
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
+  const [tripOptions, setTripOptions] = useState<{ value: string; label: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [tripId, setTripId] = useState("");
   const [titulo, setTitulo] = useState("");
   const [localEvento, setLocalEvento] = useState("");
-  const [inicioEm, setInicioEm] = useState(new Date().toISOString());
+  const [inicioEm, setInicioEm] = useState(toPtBrDateTime(new Date().toISOString()));
   const [fimEm, setFimEm] = useState("");
   const [status, setStatus] = useState<StatusAgendamento>("AGENDADO");
 
@@ -48,6 +74,26 @@ export function ScheduleScreen() {
     load();
   }, [load]);
 
+  useEffect(() => {
+    const loadTrips = async () => {
+      if (!session?.token) {
+        return;
+      }
+      try {
+        const trips = await tripsApi.list(session.token);
+        setTripOptions(
+          trips.map((trip) => ({
+            value: String(trip.id),
+            label: `${trip.origin} -> ${trip.destination}`,
+          })),
+        );
+      } catch {
+        Alert.alert("Agenda", "Não foi possível carregar as corridas.");
+      }
+    };
+    loadTrips();
+  }, [session?.token]);
+
   const create = async () => {
     if (!session?.token) {
       return;
@@ -60,6 +106,16 @@ export function ScheduleScreen() {
       Alert.alert("Agenda", "Não foi possível identificar seu usuário na sessão.");
       return;
     }
+    const inicioIso = toIsoFromPtBr(inicioEm);
+    const fimIso = fimEm.trim() ? toIsoFromPtBr(fimEm) : undefined;
+    if (!inicioIso) {
+      Alert.alert("Agenda", "Data de início inválida. Use DD/MM/AAAA HH:mm.");
+      return;
+    }
+    if (fimEm.trim() && !fimIso) {
+      Alert.alert("Agenda", "Data de fim inválida. Use DD/MM/AAAA HH:mm.");
+      return;
+    }
     try {
       await agendamentosApi.create(session.token, {
         tripId: Number(tripId),
@@ -67,14 +123,18 @@ export function ScheduleScreen() {
         titulo: titulo.trim(),
         descricao: undefined,
         localEvento: localEvento || undefined,
-        inicioEm: inicioEm.trim(),
-        fimEm: fimEm || undefined,
+        inicioEm: inicioIso,
+        fimEm: fimIso,
         fusoHorario: "America/Sao_Paulo",
         lembreteMinutos: 30,
         idEventoExterno: undefined,
         status,
       });
       setTitulo("");
+      setLocalEvento("");
+      setTripId("");
+      setFimEm("");
+      setInicioEm(toPtBrDateTime(new Date().toISOString()));
       await load();
     } catch {
       Alert.alert("Agenda", "Não foi possível criar agendamento.");
@@ -117,34 +177,95 @@ export function ScheduleScreen() {
     }
   };
 
+  const addToDeviceCalendar = async (item: Agendamento) => {
+    const startDate = new Date(item.inicioEm);
+    const endDate = item.fimEm ? new Date(item.fimEm) : new Date(startDate.getTime() + 60 * 60 * 1000);
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      Alert.alert("Agenda", "Não foi possível converter a data do agendamento.");
+      return;
+    }
+
+    await addEventToDeviceCalendar({
+      title: item.titulo,
+      startDate,
+      endDate,
+      location: item.localEvento ?? undefined,
+      notes: item.descricao ?? undefined,
+      timeZone: item.fusoHorario || "America/Sao_Paulo",
+    });
+  };
+
   return (
     <Screen>
-      <SGCard title="Novo agendamento" subtitle="Datas em ISO: 2026-03-03T10:30:00-03:00">
-        <SGInput label="Trip ID" value={tripId} onChangeText={setTripId} keyboardType="number-pad" />
-        <Text style={styles.line}>Usuário da sessão: {session?.userId ?? "-"}</Text>
-        <SGInput label="Título" value={titulo} onChangeText={setTitulo} />
-        <SGInput label="Local" value={localEvento} onChangeText={setLocalEvento} />
-        <SGInput label="Início (ISO)" value={inicioEm} onChangeText={setInicioEm} />
-        <SGInput label="Fim (ISO opcional)" value={fimEm} onChangeText={setFimEm} />
+      <SGCard title="Novo agendamento">
+        <ChipSelect label="Corrida" value={tripId} options={tripOptions} onChange={setTripId} />
+        <SGInput label="Título" value={titulo} onChangeText={setTitulo} placeholder="Ex: Embarque aeroporto" />
+        <SGInput label="Local" value={localEvento} onChangeText={setLocalEvento} placeholder="Ex: Terminal 2, Hotel, Shopping" />
+        <SGInput
+          label="Início"
+          value={inicioEm}
+          onChangeText={setInicioEm}
+          placeholder="Ex: 08/03/2026 14:30"
+          keyboardType="numbers-and-punctuation"
+        />
+        <SGInput
+          label="Fim (opcional)"
+          value={fimEm}
+          onChangeText={setFimEm}
+          placeholder="Ex: 08/03/2026 15:30"
+          keyboardType="numbers-and-punctuation"
+        />
         <ChipSelect label="Status" value={status} options={statusOptions} onChange={(v) => setStatus(v as StatusAgendamento)} />
-        <SGButton label="Criar agendamento" onPress={create} />
+        <SGButton
+          label="Criar agendamento"
+          onPress={create}
+          icon={<Ionicons name="calendar-outline" size={18} color="#fff" />}
+        />
       </SGCard>
 
-      <SGButton label="Atualizar agenda" onPress={load} loading={loading} variant="secondary" />
+      <View style={styles.actions}>
+        <SGButton
+          label="Atualizar agenda"
+          onPress={load}
+          loading={loading}
+          variant="secondary"
+          icon={<Ionicons name="refresh-circle-outline" size={18} color="#fff" />}
+        />
+      </View>
 
       {agendamentos.length === 0 ? <EmptyState message="Nenhum agendamento encontrado." /> : null}
 
       {agendamentos.map((item) => (
         <SGCard key={item.id} title={item.titulo} subtitle={dateTime(item.inicioEm)}>
           <StatusBadge label={agendamentoStatusLabels[item.status]} status={item.status} />
-          <Text style={styles.line}>Usuário: {item.usuarioNome ?? `ID ${item.usuarioId}`}</Text>
-          <Text style={styles.line}>Trip ID: {item.tripId}</Text>
+          <Text style={styles.line}>Responsável: {item.usuarioNome ?? "Motorista"}</Text>
+          <Text style={styles.line}>Corrida vinculada: #{item.tripId}</Text>
           <Text style={styles.line}>Local: {item.localEvento ?? "-"}</Text>
           <View style={styles.row}>
-            <SGButton label="Concluir" onPress={() => updateStatus(item, "CONCLUIDO")} />
-            <SGButton label="Cancelar" onPress={() => updateStatus(item, "CANCELADO")} variant="danger" />
+            <SGButton
+              label="Concluir"
+              onPress={() => updateStatus(item, "CONCLUIDO")}
+              icon={<Ionicons name="checkmark-circle-outline" size={18} color="#fff" />}
+            />
+            <SGButton
+              label="Cancelar"
+              onPress={() => updateStatus(item, "CANCELADO")}
+              variant="danger"
+              icon={<Ionicons name="close-circle-outline" size={18} color="#fff" />}
+            />
           </View>
-          <SGButton label="Excluir" onPress={() => remove(item.id)} variant="danger" />
+          <SGButton
+            label="Adicionar ao calendário"
+            onPress={() => addToDeviceCalendar(item)}
+            variant="secondary"
+            icon={<Ionicons name="calendar-clear-outline" size={18} color="#fff" />}
+          />
+          <SGButton
+            label="Excluir"
+            onPress={() => remove(item.id)}
+            variant="danger"
+            icon={<Ionicons name="trash-outline" size={18} color="#fff" />}
+          />
         </SGCard>
       ))}
     </Screen>
@@ -152,6 +273,9 @@ export function ScheduleScreen() {
 }
 
 const styles = StyleSheet.create({
+  actions: {
+    width: "100%",
+  },
   line: {
     color: colors.subtext,
     fontSize: 13,

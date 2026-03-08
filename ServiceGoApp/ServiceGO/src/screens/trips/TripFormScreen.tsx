@@ -11,6 +11,7 @@ import { tripStatusLabels, tripTypeLabels } from "../../constants/labels";
 import { colors, spacing } from "../../constants/theme";
 import { useAuth } from "../../context/AuthContext";
 import { customersApi, tripsApi, veiculosApi } from "../../services/api";
+import { addEventToDeviceCalendar } from "../../utils/calendar";
 import { cleanText, parseNumber } from "../../utils/format";
 import type { TripStatus, TripType } from "../../types/api";
 import type { TripsStackParamList } from "../../navigation/types";
@@ -123,6 +124,14 @@ export function TripFormScreen({ navigation, route }: Props) {
   }, [tripType]);
 
   const submit = async () => {
+    return submitTrip(false);
+  };
+
+  const submitAndAddToCalendar = async () => {
+    return submitTrip(true);
+  };
+
+  const submitTrip = async (openCalendarAfterSave: boolean) => {
     if (!session?.token) {
       return;
     }
@@ -149,6 +158,7 @@ export function TripFormScreen({ navigation, route }: Props) {
     const notesText = cleanText(notes);
     const contextualNotes =
       !isAppTrip && detailText ? cleanText(`${tripDetailLabel}: ${detailText}${notesText ? ` | ${notesText}` : ""}`) : notesText;
+    const title = `${origin.trim()} -> ${destination.trim()}`;
 
     try {
       setSaving(true);
@@ -171,6 +181,20 @@ export function TripFormScreen({ navigation, route }: Props) {
         await tripsApi.update(session.token, trip.id, payload);
       } else {
         await tripsApi.create(session.token, payload);
+      }
+      if (openCalendarAfterSave) {
+        const startDate = new Date(startAtIso);
+        const endDate = endAtIso ? new Date(endAtIso) : new Date(startDate.getTime() + 60 * 60 * 1000);
+        if (!Number.isNaN(startDate.getTime()) && !Number.isNaN(endDate.getTime())) {
+          await addEventToDeviceCalendar({
+            title,
+            startDate,
+            endDate,
+            location: destination.trim(),
+            notes: contextualNotes,
+            timeZone: "America/Sao_Paulo",
+          });
+        }
       }
       navigation.goBack();
     } catch {
@@ -238,6 +262,13 @@ export function TripFormScreen({ navigation, route }: Props) {
           onPress={submit}
           loading={saving}
           icon={<Ionicons name={trip ? "create-outline" : "checkmark-circle-outline"} size={18} color="#fff" />}
+        />
+        <SGButton
+          label={trip ? "Atualizar e adicionar ao calendário" : "Criar e adicionar ao calendário"}
+          onPress={submitAndAddToCalendar}
+          loading={saving}
+          variant="secondary"
+          icon={<Ionicons name="calendar-clear-outline" size={18} color="#fff" />}
         />
       </SGCard>
 
