@@ -35,6 +35,7 @@ export type ScheduleStackParamList = {
 
 export type SettingsStackParamList = {
   Settings: undefined;
+  Subscription: undefined;
 };
 
 export type MainTabParamList = {

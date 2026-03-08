@@ -9,12 +9,14 @@ import com.ServiceGo.domain.enums.DepreciacaoModo;
 import com.ServiceGo.domain.repository.ConfiguracaoUsuarioRepository;
 import com.ServiceGo.domain.repository.ExpenseRepository;
 import com.ServiceGo.domain.repository.TripRepository;
+import com.ServiceGo.security.PlanAccessService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -33,15 +35,18 @@ public class RelatorioController {
     private final TripRepository tripRepository;
     private final ExpenseRepository expenseRepository;
     private final ConfiguracaoUsuarioRepository configuracaoUsuarioRepository;
+    private final PlanAccessService planAccessService;
 
     public RelatorioController(
             TripRepository tripRepository,
             ExpenseRepository expenseRepository,
-            ConfiguracaoUsuarioRepository configuracaoUsuarioRepository
+            ConfiguracaoUsuarioRepository configuracaoUsuarioRepository,
+            PlanAccessService planAccessService
     ) {
         this.tripRepository = tripRepository;
         this.expenseRepository = expenseRepository;
         this.configuracaoUsuarioRepository = configuracaoUsuarioRepository;
+        this.planAccessService = planAccessService;
     }
 
     @GetMapping("/financeiro")
@@ -49,8 +54,10 @@ public class RelatorioController {
             @RequestParam Long usuarioId,
             @RequestParam(required = false) Long veiculoId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime inicio,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime fim
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime fim,
+            Authentication authentication
     ) {
+        planAccessService.ensurePremiumUser(usuarioId, authentication);
         OffsetDateTime fimPeriodo = fim != null ? fim : OffsetDateTime.now();
         OffsetDateTime inicioPeriodo = inicio != null ? inicio : fimPeriodo.minusDays(30);
         if (inicioPeriodo.isAfter(fimPeriodo)) {

@@ -19,6 +19,7 @@ import { PaymentFormScreen } from "../screens/finance/PaymentFormScreen";
 import { ExpenseFormScreen } from "../screens/finance/ExpenseFormScreen";
 import { ScheduleScreen } from "../screens/schedule/ScheduleScreen";
 import { SettingsScreen } from "../screens/settings/SettingsScreen";
+import { SubscriptionScreen } from "../screens/settings/SubscriptionScreen";
 import type {
   AuthStackParamList,
   CustomersStackParamList,
@@ -118,6 +119,7 @@ function SettingsStackNav() {
   return (
     <SettingsStack.Navigator>
       <SettingsStack.Screen name="Settings" component={SettingsScreen} options={{ title: "Ajustes" }} />
+      <SettingsStack.Screen name="Subscription" component={SubscriptionScreen} options={{ title: "Assinar Pro" }} />
     </SettingsStack.Navigator>
   );
 }

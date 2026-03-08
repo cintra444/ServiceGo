@@ -2,6 +2,7 @@ import React, { useEffect, useLayoutEffect, useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { HeaderHelpButton } from "../../components/ui/HeaderHelpButton";
 import { Screen } from "../../components/ui/Screen";
 import { SGCard } from "../../components/ui/SGCard";
@@ -13,11 +14,13 @@ import { authApi, configuracaoApi } from "../../services/api";
 import { fuelSettingsStorage } from "../../services/storage";
 import { colors } from "../../constants/theme";
 import { depreciacaoAlocacaoLabels, depreciacaoModoLabels } from "../../constants/labels";
-import { parseNumber } from "../../utils/format";
+import { dateOnly, parseNumber } from "../../utils/format";
+import { hasPremiumAccess } from "../../utils/plan";
 import type { ConfiguracaoUsuarioRequest, DepreciacaoAlocacao, DepreciacaoModo } from "../../types/api";
+import type { SettingsStackParamList } from "../../navigation/types";
 
 export function SettingsScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<SettingsStackParamList, "Settings">>();
   const { session, logout } = useAuth();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -45,6 +48,17 @@ export function SettingsScreen() {
   const isPorKm = depreciacaoAlocacao === "POR_KM";
   const isMensal = depreciacaoAlocacao === "MENSAL";
   const isAnual = depreciacaoAlocacao === "ANUAL";
+  const isPremium = hasPremiumAccess(session?.plan);
+  const planStatusLabel =
+    session?.plan?.status === "TRIAL"
+      ? "Teste Pro"
+      : session?.plan?.status === "ACTIVE"
+        ? "Pro ativo"
+        : session?.plan?.status === "EXPIRED"
+          ? "Pro expirado"
+          : session?.plan?.status === "CANCELED"
+            ? "Assinatura cancelada"
+            : "Plano indisponível";
 
   const setConfigValues = (config: {
     sincronizarCalendario: boolean;
@@ -279,6 +293,24 @@ export function SettingsScreen() {
           onPress={logout}
           variant="danger"
           icon={<Ionicons name="log-out-outline" size={18} color="#fff" />}
+        />
+      </SGCard>
+
+      <SGCard title="Plano" subtitle={isPremium ? "Recursos premium liberados" : "Assinatura necessária para recursos avançados"}>
+        <View style={styles.infoRow}>
+          <Ionicons name={isPremium ? "diamond-outline" : "lock-closed-outline"} size={16} color={isPremium ? colors.primaryDark : colors.accent} />
+          <Text style={styles.hint}>
+            {session?.plan?.type === "PRO" ? "ServiceGO Pro" : "ServiceGO Free"} - {planStatusLabel}
+          </Text>
+        </View>
+        {session?.plan?.trialEndsAt ? (
+          <Text style={styles.hint}>Teste atual até {dateOnly(session.plan.trialEndsAt)}.</Text>
+        ) : null}
+        <SGButton
+          label="Abrir Assinar Pro"
+          onPress={() => navigation.navigate("Subscription")}
+          variant="secondary"
+          icon={<Ionicons name="diamond-outline" size={18} color="#fff" />}
         />
       </SGCard>
 

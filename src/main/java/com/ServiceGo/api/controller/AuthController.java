@@ -14,6 +14,7 @@ import com.ServiceGo.domain.enums.SubscriptionStatus;
 import com.ServiceGo.domain.enums.UserRole;
 import com.ServiceGo.domain.repository.AppUserRepository;
 import com.ServiceGo.security.JwtService;
+import com.ServiceGo.security.PlanAccessService;
 import java.time.OffsetDateTime;
 import java.util.Locale;
 import jakarta.validation.Valid;
@@ -42,17 +43,20 @@ public class AuthController {
     private final JwtService jwtService;
     private final AppUserRepository appUserRepository;
     private final PasswordEncoder passwordEncoder;
+    private final PlanAccessService planAccessService;
 
     public AuthController(
             AuthenticationManager authenticationManager,
             JwtService jwtService,
             AppUserRepository appUserRepository,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            PlanAccessService planAccessService
     ) {
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.appUserRepository = appUserRepository;
         this.passwordEncoder = passwordEncoder;
+        this.planAccessService = planAccessService;
     }
 
     @PostMapping("/login")
@@ -133,6 +137,12 @@ public class AuthController {
 
         user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
         appUserRepository.save(user);
+    }
+
+    @org.springframework.web.bind.annotation.GetMapping("/me/plan")
+    @ResponseStatus(HttpStatus.OK)
+    public PlanResponse getMyPlan(Authentication authentication) {
+        return toPlanResponse(planAccessService.getAuthenticatedUser(authentication));
     }
 
     private boolean isLastActiveAdmin(Long userIdToIgnore) {

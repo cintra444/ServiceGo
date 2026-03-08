@@ -23,6 +23,9 @@ export const authApi = {
   login(payload: LoginRequest) {
     return apiRequest<LoginResponse>("/api/auth/login", { method: "POST", body: payload });
   },
+  mePlan(token: string) {
+    return apiRequest<LoginResponse["plan"]>("/api/auth/me/plan", { token });
+  },
   changePassword(token: string, currentPassword: string, newPassword: string) {
     return apiRequest<void>("/api/auth/change-password", {
       method: "POST",

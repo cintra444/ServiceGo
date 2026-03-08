@@ -56,6 +56,16 @@ export interface LoginResponse {
   plan?: SubscriptionPlan;
 }
 
+export interface RegisterResponse {
+  id: number;
+  name: string;
+  email: string;
+  role: UserRole | `ROLE_${UserRole}` | string;
+  active: boolean;
+  createdAt: string;
+  plan?: SubscriptionPlan;
+}
+
 export interface Customer {
   id: number;
   name: string;
