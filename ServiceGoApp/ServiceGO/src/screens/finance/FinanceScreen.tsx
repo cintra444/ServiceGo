@@ -2,27 +2,53 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { Ionicons } from "@expo/vector-icons";
 import { Screen } from "../../components/ui/Screen";
 import { SGButton } from "../../components/ui/SGButton";
 import { SGCard } from "../../components/ui/SGCard";
+import { ChipSelect } from "../../components/ui/ChipSelect";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { SGInput } from "../../components/ui/SGInput";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { colors, spacing } from "../../constants/theme";
 import { expenseCategoryLabels, paymentMethodLabels, paymentStatusLabels } from "../../constants/labels";
-import { expensesApi, paymentsApi, relatoriosApi } from "../../services/api";
+import { expensesApi, paymentsApi, relatoriosApi, veiculosApi } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { currency, dateTime } from "../../utils/format";
 import type { FinanceStackParamList } from "../../navigation/types";
-import type { Expense, Payment, RelatorioFinanceiro } from "../../types/api";
+import type { Expense, Payment, RelatorioFinanceiro, Veiculo } from "../../types/api";
 
 type Nav = NativeStackNavigationProp<FinanceStackParamList, "FinanceHome">;
+
+const toOffsetIso = (dateValue: string, endOfDay = false) => {
+  const normalized = dateValue.trim();
+  const match = normalized.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) {
+    return undefined;
+  }
+  const [, dd, mm, yyyy] = match;
+  const hours = endOfDay ? 23 : 0;
+  const minutes = endOfDay ? 59 : 0;
+  const seconds = endOfDay ? 59 : 0;
+  const localDate = new Date(Number(yyyy), Number(mm) - 1, Number(dd), hours, minutes, seconds, 0);
+  if (Number.isNaN(localDate.getTime())) {
+    return undefined;
+  }
+  const pad = (value: number) => String(value).padStart(2, "0");
+  const offsetMinutes = -localDate.getTimezoneOffset();
+  const sign = offsetMinutes >= 0 ? "+" : "-";
+  const absoluteOffset = Math.abs(offsetMinutes);
+  const offsetHours = pad(Math.floor(absoluteOffset / 60));
+  const offsetRemainder = pad(absoluteOffset % 60);
+  return `${yyyy}-${mm}-${dd}T${pad(hours)}:${pad(minutes)}:${pad(seconds)}${sign}${offsetHours}:${offsetRemainder}`;
+};
 
 export function FinanceScreen() {
   const navigation = useNavigation<Nav>();
   const { session } = useAuth();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
   const [veiculoId, setVeiculoId] = useState("");
   const [inicio, setInicio] = useState("");
   const [fim, setFim] = useState("");
@@ -36,9 +62,14 @@ export function FinanceScreen() {
     }
     try {
       setLoading(true);
-      const [p, e] = await Promise.all([paymentsApi.list(session.token), expensesApi.list(session.token)]);
+      const [p, e, v] = await Promise.all([
+        paymentsApi.list(session.token),
+        expensesApi.list(session.token),
+        veiculosApi.list(session.token),
+      ]);
       setPayments(p);
       setExpenses(e);
+      setVeiculos(v);
     } catch {
       Alert.alert("Financeiro", "Falha ao carregar dados.");
     } finally {
@@ -83,16 +114,14 @@ export function FinanceScreen() {
       Alert.alert("Relatório", "Não foi possível identificar seu usuário na sessão.");
       return;
     }
-    if (veiculoId.trim() && (!veiculoIdValue || !Number.isInteger(veiculoIdValue))) {
-      Alert.alert("Relatório", "Veículo ID inválido.");
+    const inicioIso = inicio.trim() ? toOffsetIso(inicio) : undefined;
+    const fimIso = fim.trim() ? toOffsetIso(fim, true) : undefined;
+    if (inicio.trim() && !inicioIso) {
+      Alert.alert("Relatório", "Data inicial inválida. Use DD/MM/AAAA.");
       return;
     }
-    if (inicio.trim() && Number.isNaN(new Date(inicio).getTime())) {
-      Alert.alert("Relatório", "Campo início inválido. Use ISO_OFFSET_DATE_TIME.");
-      return;
-    }
-    if (fim.trim() && Number.isNaN(new Date(fim).getTime())) {
-      Alert.alert("Relatório", "Campo fim inválido. Use ISO_OFFSET_DATE_TIME.");
+    if (fim.trim() && !fimIso) {
+      Alert.alert("Relatório", "Data final inválida. Use DD/MM/AAAA.");
       return;
     }
 
@@ -101,8 +130,8 @@ export function FinanceScreen() {
       const data = await relatoriosApi.financeiro(session.token, {
         usuarioId: usuarioIdValue,
         veiculoId: veiculoId.trim() ? veiculoIdValue : undefined,
-        inicio: inicio.trim() ? inicio.trim() : undefined,
-        fim: fim.trim() ? fim.trim() : undefined,
+        inicio: inicioIso,
+        fim: fimIso,
       });
       setRelatorio(data);
     } catch {
@@ -122,35 +151,61 @@ export function FinanceScreen() {
         </Text>
       </SGCard>
 
-      <View style={styles.row}>
-        <SGButton label="Novo pagamento" onPress={() => navigation.navigate("PaymentForm")} />
-        <SGButton label="Nova despesa" onPress={() => navigation.navigate("ExpenseForm")} />
+      <View style={styles.actions}>
+        <SGButton
+          label="Novo pagamento"
+          onPress={() => navigation.navigate("PaymentForm")}
+          variant="secondary"
+          icon={<Ionicons name="wallet-outline" size={18} color="#fff" />}
+        />
+        <SGButton
+          label="Nova despesa"
+          onPress={() => navigation.navigate("ExpenseForm")}
+          variant="secondary"
+          icon={<Ionicons name="receipt-outline" size={18} color="#fff" />}
+        />
       </View>
-      <SGButton label="Atualizar financeiro" onPress={load} loading={loading} variant="secondary" />
+      <SGButton
+        label="Atualizar financeiro"
+        onPress={load}
+        loading={loading}
+        variant="secondary"
+        icon={<Ionicons name="refresh-circle-outline" size={18} color="#fff" />}
+      />
 
-      <SGCard title="Relatório financeiro consolidado" subtitle="GET /api/relatorios/financeiro">
-        <Text style={styles.line}>Usuário da sessão: {session.userId ?? "-"}</Text>
-        <SGInput
-          label="Veículo ID (opcional)"
+      <SGCard title="Relatório financeiro">
+        <ChipSelect
+          label="Veículo"
           value={veiculoId}
-          onChangeText={setVeiculoId}
-          keyboardType="number-pad"
+          onChange={setVeiculoId}
+          options={[
+            { value: "", label: "Todos" },
+            ...veiculos.map((item) => ({
+              value: String(item.id),
+              label: `${item.placa} - ${item.modelo}`,
+            })),
+          ]}
         />
         <SGInput
-          label="Início ISO_OFFSET_DATE_TIME (opcional)"
+          label="Data inicial (opcional)"
           value={inicio}
           onChangeText={setInicio}
-          placeholder="2026-03-01T00:00:00-03:00"
-          autoCapitalize="none"
+          placeholder="Ex: 01/03/2026"
+          keyboardType="numbers-and-punctuation"
         />
         <SGInput
-          label="Fim ISO_OFFSET_DATE_TIME (opcional)"
+          label="Data final (opcional)"
           value={fim}
           onChangeText={setFim}
-          placeholder="2026-03-31T23:59:59-03:00"
-          autoCapitalize="none"
+          placeholder="Ex: 31/03/2026"
+          keyboardType="numbers-and-punctuation"
         />
-        <SGButton label="Carregar relatório" onPress={loadRelatorioFinanceiro} loading={loadingRelatorio} />
+        <SGButton
+          label="Gerar relatório"
+          onPress={loadRelatorioFinanceiro}
+          loading={loadingRelatorio}
+          icon={<Ionicons name="bar-chart-outline" size={18} color="#fff" />}
+        />
 
         {relatorio ? (
           <View style={styles.report}>
@@ -186,8 +241,8 @@ export function FinanceScreen() {
             subtitle={dateTime(payment.paidAt ?? payment.dueAt)}
           >
             <StatusBadge label={paymentStatusLabels[payment.status]} status={payment.status} />
-            <Text style={styles.line}>Corrida ID: {payment.tripId ?? "-"}</Text>
-            <Text style={styles.line}>Cliente ID: {payment.customerId ?? "-"}</Text>
+            <Text style={styles.line}>Corrida vinculada: {payment.tripId ? `#${payment.tripId}` : "-"}</Text>
+            <Text style={styles.line}>Cliente: {payment.customerId ? `#${payment.customerId}` : "-"}</Text>
             <Text style={styles.line}>Parcial: {payment.pagamentoParcial ? "Sim" : "Não"}</Text>
             <View style={styles.row}>
               <SGButton label="Editar" onPress={() => navigation.navigate("PaymentForm", { payment })} />
@@ -206,7 +261,7 @@ export function FinanceScreen() {
             subtitle={dateTime(expense.occurredAt)}
           >
             <Text style={styles.line}>Veículo: {expense.veiculoPlaca ?? `ID ${expense.veiculoId}`}</Text>
-            <Text style={styles.line}>Corrida ID: {expense.tripId ?? "-"}</Text>
+            <Text style={styles.line}>Corrida vinculada: {expense.tripId ? `#${expense.tripId}` : "-"}</Text>
             <Text style={styles.line}>Descrição: {expense.description ?? "-"}</Text>
             <View style={styles.row}>
               <SGButton label="Editar" onPress={() => navigation.navigate("ExpenseForm", { expense })} />
@@ -220,6 +275,11 @@ export function FinanceScreen() {
 }
 
 const styles = StyleSheet.create({
+  actions: {
+    marginTop: spacing.xl + spacing.md,
+    width: "100%",
+    gap: spacing.sm,
+  },
   line: {
     color: colors.subtext,
     fontSize: 13,
