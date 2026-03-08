@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { Ionicons } from "@expo/vector-icons";
 import { Screen } from "../../components/ui/Screen";
 import { SGCard } from "../../components/ui/SGCard";
 import { SGButton } from "../../components/ui/SGButton";
@@ -52,8 +53,20 @@ export function VehiclesScreen() {
 
   return (
     <Screen>
-      <SGButton label="Novo veículo" onPress={() => navigation.navigate("VehicleForm")} />
-      <SGButton label="Atualizar lista" onPress={load} loading={loading} variant="secondary" />
+      <View style={styles.actions}>
+        <SGButton
+          label="Novo veículo"
+          onPress={() => navigation.navigate("VehicleForm")}
+          icon={<Ionicons name="car-sport-outline" size={18} color="#fff" />}
+        />
+        <SGButton
+          label="Atualizar lista"
+          onPress={load}
+          loading={loading}
+          variant="secondary"
+          icon={<Ionicons name="refresh-circle-outline" size={18} color="#fff" />}
+        />
+      </View>
       {veiculos.length === 0 ? <EmptyState message="Nenhum veículo cadastrado." /> : null}
       {veiculos.map((item) => (
         <SGCard key={item.id} title={`${item.modelo} - ${item.placa}`} subtitle={`Ano ${item.ano}`}>
@@ -72,6 +85,13 @@ export function VehiclesScreen() {
 }
 
 const styles = StyleSheet.create({
+  actions: {
+    marginTop: spacing.xl + spacing.md,
+    marginBottom: spacing.xs,
+    alignSelf: "center",
+    width: "92%",
+    gap: spacing.sm,
+  },
   line: {
     color: colors.subtext,
     fontSize: 13,
