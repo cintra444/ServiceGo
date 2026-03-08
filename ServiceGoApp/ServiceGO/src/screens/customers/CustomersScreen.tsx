@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { Ionicons } from "@expo/vector-icons";
 import { Screen } from "../../components/ui/Screen";
 import { SGCard } from "../../components/ui/SGCard";
 import { SGButton } from "../../components/ui/SGButton";
@@ -52,8 +53,20 @@ export function CustomersScreen() {
 
   return (
     <Screen>
-      <SGButton label="Novo cliente" onPress={() => navigation.navigate("CustomerForm")} />
-      <SGButton label="Atualizar lista" onPress={load} loading={loading} variant="secondary" />
+      <View style={styles.actions}>
+        <SGButton
+          label="Novo cliente"
+          onPress={() => navigation.navigate("CustomerForm")}
+          icon={<Ionicons name="person-add-outline" size={18} color="#fff" />}
+        />
+        <SGButton
+          label="Atualizar lista"
+          onPress={load}
+          loading={loading}
+          variant="secondary"
+          icon={<Ionicons name="refresh-circle-outline" size={18} color="#fff" />}
+        />
+      </View>
       {customers.length === 0 ? <EmptyState message="Nenhum cliente cadastrado." /> : null}
       {customers.map((customer) => (
         <SGCard key={customer.id} title={customer.name} subtitle={customer.email ?? "Sem e-mail"}>
@@ -70,6 +83,13 @@ export function CustomersScreen() {
 }
 
 const styles = StyleSheet.create({
+  actions: {
+    marginTop: spacing.xl + spacing.md,
+    marginBottom: spacing.xs,
+    alignSelf: "center",
+    width: "92%",
+    gap: spacing.sm,
+  },
   line: {
     color: colors.subtext,
     fontSize: 13,
