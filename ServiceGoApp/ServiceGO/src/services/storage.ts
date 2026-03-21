@@ -57,8 +57,8 @@ export const sessionStorage = {
     if (!token || !email || !role) {
       return null;
     }
-    const parsedUserId = userIdRaw ? Number(userIdRaw) : undefined;
-    const userId = Number.isInteger(parsedUserId) && parsedUserId > 0 ? parsedUserId : undefined;
+    const parsedUserId = userIdRaw ? Number(userIdRaw) : null;
+    const userId = parsedUserId !== null && Number.isInteger(parsedUserId) && parsedUserId > 0 ? parsedUserId : undefined;
     let plan: SubscriptionPlan | undefined;
     if (planRaw) {
       try {
