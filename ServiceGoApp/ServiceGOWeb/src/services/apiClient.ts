@@ -1,6 +1,7 @@
 const REQUEST_TIMEOUT_MS = 12000;
 
-export const API_BASE_URL = (import.meta.env.VITE_API_URL?.trim() || "http://localhost:8080").replace(/\/$/, "");
+const rawApiBaseUrl = import.meta.env.VITE_API_URL?.trim() ?? "";
+export const API_BASE_URL = rawApiBaseUrl ? rawApiBaseUrl.replace(/\/$/, "") : "";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 

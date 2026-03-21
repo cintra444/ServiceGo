@@ -15,6 +15,57 @@ interface DashboardData {
   expenses: Expense[];
 }
 
+function DashboardIcon({ kind }: { kind: "trips" | "progress" | "revenue" | "costs" }) {
+  const icons = {
+    trips: (
+      <path
+        d="M4.5 15.5h15m-12.8 0 1.1-6.2c.12-.69.18-1.03.37-1.28.17-.23.4-.41.67-.53.3-.14.66-.14 1.38-.14h3.5c.72 0 1.08 0 1.38.14.27.12.5.3.67.53.19.25.25.59.37 1.28l1.1 6.2M7.5 18.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm9 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    ),
+    progress: (
+      <path
+        d="M12 5.2a6.8 6.8 0 1 0 6.8 6.8m-2.4-4.4-4 4-2-2m1.6-6.6h6.4V9"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    ),
+    revenue: (
+      <path
+        d="M6 17.5V10m6 7.5V6.5m6 11V12M4.5 19.5h15"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    ),
+    costs: (
+      <path
+        d="M5 6.5h14m-2 0-1.2 12H8.2L7 6.5m3-2h4"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    ),
+  };
+
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      {icons[kind]}
+    </svg>
+  );
+}
+
 export function DashboardPage() {
   const { session } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -92,10 +143,20 @@ export function DashboardPage() {
       {!loading && !error ? (
         <>
           <div className="stats-grid">
-            <StatCard label="Corridas hoje" value={String(metrics.tripsToday)} />
-            <StatCard label="Em andamento" value={String(metrics.inProgress)} />
-            <StatCard label="Receita do mês" value={currency(metrics.monthlyRevenue)} tone="success" />
-            <StatCard label="Despesas do mês" value={currency(metrics.monthlyCosts)} tone="danger" />
+            <StatCard label="Corridas hoje" value={String(metrics.tripsToday)} icon={<DashboardIcon kind="trips" />} />
+            <StatCard label="Em andamento" value={String(metrics.inProgress)} icon={<DashboardIcon kind="progress" />} />
+            <StatCard
+              label="Receita do mês"
+              value={currency(metrics.monthlyRevenue)}
+              tone="success"
+              icon={<DashboardIcon kind="revenue" />}
+            />
+            <StatCard
+              label="Despesas do mês"
+              value={currency(metrics.monthlyCosts)}
+              tone="danger"
+              icon={<DashboardIcon kind="costs" />}
+            />
           </div>
 
           <Panel title="Saldo estimado do mês" subtitle="Receitas menos despesas registradas no período atual">

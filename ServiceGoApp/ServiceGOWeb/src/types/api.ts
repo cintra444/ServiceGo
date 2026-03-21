@@ -56,6 +56,13 @@ export interface LoginResponse {
   plan?: SubscriptionPlan;
 }
 
+export interface CustomerRequest {
+  name: string;
+  phone?: string;
+  email?: string;
+  notes?: string;
+}
+
 export interface Customer {
   id: number;
   name: string;
@@ -75,6 +82,16 @@ export interface Veiculo {
   kmAtual: number;
   donoUsuarioId: number;
   donoNome?: string | null;
+}
+
+export interface VeiculoRequest {
+  modelo: string;
+  placa: string;
+  ano: number;
+  cor?: string;
+  ativo: boolean;
+  kmAtual: number;
+  donoUsuarioId: number;
 }
 
 export interface Trip {
@@ -98,6 +115,22 @@ export interface Trip {
   createdAt?: string;
 }
 
+export interface TripRequest {
+  customerId?: number | null;
+  veiculoId: number;
+  tripType: TripType;
+  status: TripStatus;
+  origin: string;
+  destination: string;
+  appPlatform?: string;
+  startAt: string;
+  endAt?: string;
+  distanceKm?: number;
+  estimatedAmount?: number;
+  actualAmount?: number;
+  notes?: string;
+}
+
 export interface Payment {
   id: number;
   tripId?: number | null;
@@ -113,6 +146,20 @@ export interface Payment {
   notes?: string | null;
 }
 
+export interface PaymentRequest {
+  tripId?: number | null;
+  customerId?: number | null;
+  method: PaymentMethod;
+  status: PaymentStatus;
+  amount: number;
+  pagamentoParcial: boolean;
+  numeroParcela?: number;
+  paidAt?: string;
+  dueAt?: string;
+  referenceCode?: string;
+  notes?: string;
+}
+
 export interface Expense {
   id: number;
   tripId?: number | null;
@@ -121,6 +168,15 @@ export interface Expense {
   category: ExpenseCategory;
   amount: number;
   description?: string | null;
+  occurredAt: string;
+}
+
+export interface ExpenseRequest {
+  tripId?: number | null;
+  veiculoId: number;
+  category: ExpenseCategory;
+  amount: number;
+  description?: string;
   occurredAt: string;
 }
 
@@ -142,6 +198,20 @@ export interface Agendamento {
   atualizadoEm?: string;
 }
 
+export interface AgendamentoRequest {
+  tripId: number;
+  usuarioId: number;
+  titulo: string;
+  descricao?: string;
+  localEvento?: string;
+  inicioEm: string;
+  fimEm?: string;
+  fusoHorario: string;
+  lembreteMinutos?: number;
+  idEventoExterno?: string;
+  status: StatusAgendamento;
+}
+
 export interface ConfiguracaoUsuario {
   id: number;
   usuarioId: number;
@@ -159,4 +229,40 @@ export interface ConfiguracaoUsuario {
   valorManualPorKm?: number | null;
   valorManualMensal?: number | null;
   valorManualAnual?: number | null;
+}
+
+export interface ConfiguracaoUsuarioRequest {
+  sincronizarCalendario: boolean;
+  lembreteAtivo: boolean;
+  minutosAntecedenciaLembrete: number;
+  fusoHorario: string;
+  depreciacaoModo: DepreciacaoModo;
+  depreciacaoAlocacao: DepreciacaoAlocacao;
+  valorAtualVeiculo?: number;
+  valorEstimadoVeiculo?: number;
+  kmBaseDepreciacao?: number;
+  mesesBaseDepreciacao?: number;
+  anosBaseDepreciacao?: number;
+  valorManualPorKm?: number;
+  valorManualMensal?: number;
+  valorManualAnual?: number;
+}
+
+export interface RelatorioFinanceiro {
+  usuarioId: number;
+  veiculoId?: number | null;
+  periodoInicio: string;
+  periodoFim: string;
+  totalCorridas: number;
+  kmTotal: number;
+  receitaTotal: number;
+  custosVariaveisTotal: number;
+  depreciacaoTotalPeriodo: number;
+  custoOperacionalTotal: number;
+  custoOperacionalPorKm: number;
+  lucroTotal: number;
+  lucroPorKm: number;
+  lucroPorCorrida: number;
+  lucroPorDia: number;
+  lucroPorMes: number;
 }
