@@ -64,6 +64,9 @@ public class Trip {
     @Column(name = "actual_amount", precision = 12, scale = 2)
     private BigDecimal actualAmount;
 
+    @Column(name = "toll_amount", precision = 12, scale = 2)
+    private BigDecimal tollAmount;
+
     @Column(length = 600)
     private String notes;
 
@@ -172,6 +175,14 @@ public class Trip {
 
     public void setActualAmount(BigDecimal actualAmount) {
         this.actualAmount = actualAmount;
+    }
+
+    public BigDecimal getTollAmount() {
+        return tollAmount;
+    }
+
+    public void setTollAmount(BigDecimal tollAmount) {
+        this.tollAmount = tollAmount;
     }
 
     public String getNotes() {

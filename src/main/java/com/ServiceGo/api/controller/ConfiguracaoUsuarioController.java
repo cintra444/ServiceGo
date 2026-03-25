@@ -82,14 +82,14 @@ public class ConfiguracaoUsuarioController {
         config.setLembreteAtivo(true);
         config.setMinutosAntecedenciaLembrete(30);
         config.setFusoHorario("America/Sao_Paulo");
-        config.setDepreciacaoModo(DepreciacaoModo.AUTOMATICA);
+        config.setDepreciacaoModo(DepreciacaoModo.MANUAL);
         config.setDepreciacaoAlocacao(DepreciacaoAlocacao.POR_KM);
-        config.setValorAtualVeiculo(BigDecimal.ZERO);
-        config.setValorEstimadoVeiculo(BigDecimal.ZERO);
-        config.setKmBaseDepreciacao(BigDecimal.ONE);
-        config.setMesesBaseDepreciacao(1);
-        config.setAnosBaseDepreciacao(BigDecimal.ONE);
-        config.setValorManualPorKm(null);
+        config.setValorAtualVeiculo(null);
+        config.setValorEstimadoVeiculo(null);
+        config.setKmBaseDepreciacao(null);
+        config.setMesesBaseDepreciacao(null);
+        config.setAnosBaseDepreciacao(null);
+        config.setValorManualPorKm(new BigDecimal("0.18"));
         config.setValorManualMensal(null);
         config.setValorManualAnual(null);
         return config;
@@ -105,10 +105,10 @@ public class ConfiguracaoUsuarioController {
 
     private void validarDepreciacao(ConfiguracaoUsuarioRequest request) {
         if (request.depreciacaoModo() == DepreciacaoModo.AUTOMATICA) {
-            if (request.valorAtualVeiculo() == null || request.valorEstimadoVeiculo() == null) {
+            if (request.valorAtualVeiculo() == null || request.valorEstimadoVeiculo() == null || request.kmBaseDepreciacao() == null) {
                 throw new ResponseStatusException(
                         HttpStatus.BAD_REQUEST,
-                        "No modo AUTOMATICA, valorAtualVeiculo e valorEstimadoVeiculo sao obrigatorios"
+                        "No modo AUTOMATICA, valorAtualVeiculo, valorEstimadoVeiculo e kmBaseDepreciacao sao obrigatorios"
                 );
             }
             if (request.valorEstimadoVeiculo().compareTo(request.valorAtualVeiculo()) > 0) {
@@ -123,7 +123,7 @@ public class ConfiguracaoUsuarioController {
                         "No modo AUTOMATICA, os campos de valor manual nao podem ser enviados"
                 );
             }
-            validarBasePorAlocacao(request.depreciacaoAlocacao(), request.kmBaseDepreciacao(), request.mesesBaseDepreciacao(), request.anosBaseDepreciacao());
+            validarPeriodoAutomatico(request.depreciacaoAlocacao(), request.mesesBaseDepreciacao(), request.anosBaseDepreciacao());
             return;
         }
 
@@ -167,34 +167,33 @@ public class ConfiguracaoUsuarioController {
         }
     }
 
-    private void validarBasePorAlocacao(
+    private void validarPeriodoAutomatico(
             DepreciacaoAlocacao alocacao,
-            BigDecimal kmBaseDepreciacao,
             Integer mesesBaseDepreciacao,
             BigDecimal anosBaseDepreciacao
     ) {
         switch (alocacao) {
             case POR_KM -> {
-                if (kmBaseDepreciacao == null || mesesBaseDepreciacao != null || anosBaseDepreciacao != null) {
+                if (mesesBaseDepreciacao != null || anosBaseDepreciacao != null) {
                     throw new ResponseStatusException(
                             HttpStatus.BAD_REQUEST,
-                            "No modo AUTOMATICA com alocacao POR_KM, informe apenas kmBaseDepreciacao"
+                            "No modo AUTOMATICA com alocacao POR_KM, informe apenas o kmBaseDepreciacao"
                     );
                 }
             }
             case MENSAL -> {
-                if (mesesBaseDepreciacao == null || kmBaseDepreciacao != null || anosBaseDepreciacao != null) {
+                if (mesesBaseDepreciacao == null || anosBaseDepreciacao != null) {
                     throw new ResponseStatusException(
                             HttpStatus.BAD_REQUEST,
-                            "No modo AUTOMATICA com alocacao MENSAL, informe apenas mesesBaseDepreciacao"
+                            "No modo AUTOMATICA com alocacao MENSAL, informe mesesBaseDepreciacao"
                     );
                 }
             }
             case ANUAL -> {
-                if (anosBaseDepreciacao == null || kmBaseDepreciacao != null || mesesBaseDepreciacao != null) {
+                if (anosBaseDepreciacao == null || mesesBaseDepreciacao != null) {
                     throw new ResponseStatusException(
                             HttpStatus.BAD_REQUEST,
-                            "No modo AUTOMATICA com alocacao ANUAL, informe apenas anosBaseDepreciacao"
+                            "No modo AUTOMATICA com alocacao ANUAL, informe anosBaseDepreciacao"
                     );
                 }
             }

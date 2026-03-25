@@ -26,6 +26,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -80,7 +81,6 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
     @ResponseStatus(HttpStatus.CREATED)
     public RegisterResponse register(@Valid @RequestBody RegisterRequest request) {
         String normalizedEmail = request.email().trim().toLowerCase(Locale.ROOT);
@@ -92,7 +92,7 @@ public class AuthController {
         user.setName(request.name().trim());
         user.setEmail(normalizedEmail);
         user.setPasswordHash(passwordEncoder.encode(request.password()));
-        user.setRole(request.role() == null ? UserRole.MOTORISTA : request.role());
+        user.setRole(UserRole.MOTORISTA);
         user.setActive(true);
         user.setCreatedAt(OffsetDateTime.now());
         user.setPlanType(PlanType.PRO);
@@ -102,6 +102,15 @@ public class AuthController {
         user.setSubscriptionEndsAt(null);
         AppUser saved = appUserRepository.save(user);
         return toRegisterResponse(saved);
+    }
+
+    @GetMapping("/users")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @ResponseStatus(HttpStatus.OK)
+    public java.util.List<RegisterResponse> listUsers() {
+        return appUserRepository.findAll().stream()
+                .map(this::toRegisterResponse)
+                .toList();
     }
 
     @PutMapping("/users/{id}/status")

@@ -9,6 +9,97 @@ import { ApiError } from "../services/apiClient";
 import type { Customer } from "../types/api";
 import { cleanText } from "../utils/format";
 
+function CustomerIcon({
+  kind,
+}: {
+  kind: "refresh" | "plus" | "customer" | "phone" | "note" | "edit" | "trash";
+}) {
+  const icons = {
+    refresh: (
+      <path
+        d="M20 11a8 8 0 1 0 2 5.3M20 4v7h-7"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    ),
+    plus: (
+      <path
+        d="M12 5v14M5 12h14"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    ),
+    customer: (
+      <>
+        <circle cx="12" cy="8" r="3.2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+        <path
+          d="M5.5 19a6.5 6.5 0 0 1 13 0"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeWidth="1.8"
+        />
+      </>
+    ),
+    phone: (
+      <path
+        d="M8.3 5.6c.5-.5 1.2-.6 1.8-.3l1.8.9c.6.3.9 1 .7 1.7l-.5 1.8a1 1 0 0 0 .3 1l1.7 1.7a1 1 0 0 0 1 .3l1.8-.5c.7-.2 1.4.1 1.7.7l.9 1.8c.3.6.2 1.3-.3 1.8l-1.2 1.2c-.8.8-1.9 1.1-3 .8-2.3-.6-4.4-1.8-6.2-3.6-1.8-1.8-3-3.9-3.6-6.2-.3-1.1 0-2.2.8-3l1.1-1.1Z"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    ),
+    note: (
+      <>
+        <path
+          d="M7 5.5h10c1 0 1.8.8 1.8 1.8v9.4c0 1-.8 1.8-1.8 1.8H9.8L5.2 21v-3.5H7c-1 0-1.8-.8-1.8-1.8V7.3c0-1 .8-1.8 1.8-1.8Z"
+          fill="none"
+          stroke="currentColor"
+          strokeLinejoin="round"
+          strokeWidth="1.8"
+        />
+        <path d="M8.8 10h6.4M8.8 13.4h4.5" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+      </>
+    ),
+    edit: (
+      <>
+        <path
+          d="M4 20h4.3L19 9.3 14.7 5 4 15.7V20Z"
+          fill="none"
+          stroke="currentColor"
+          strokeLinejoin="round"
+          strokeWidth="1.8"
+        />
+        <path d="m12.8 6.9 4.3 4.3" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+      </>
+    ),
+    trash: (
+      <path
+        d="M5 7h14M9 7V5.8c0-.7.5-1.3 1.2-1.3h3.6c.7 0 1.2.6 1.2 1.3V7m-8.7 0 .8 11c.1 1 .9 1.8 1.9 1.8h5.9c1 0 1.8-.8 1.9-1.8l.8-11"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    ),
+  };
+
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      {icons[kind]}
+    </svg>
+  );
+}
+
 const emptyForm = {
   name: "",
   phone: "",
@@ -115,9 +206,15 @@ export function CustomersPage() {
         action={
           <div className="button-row">
             <button className="secondary-button" onClick={() => void load()} type="button">
+              <span className="button-icon" aria-hidden="true">
+                <CustomerIcon kind="refresh" />
+              </span>
               Atualizar lista
             </button>
             <button className="primary-button" onClick={openCreate} type="button">
+              <span className="button-icon" aria-hidden="true">
+                <CustomerIcon kind="plus" />
+              </span>
               Novo cliente
             </button>
           </div>
@@ -134,25 +231,40 @@ export function CustomersPage() {
               <article className="entity-card" key={customer.id}>
                 <div className="entity-card-head">
                   <div>
-                    <strong>{customer.name}</strong>
+                    <strong className="entity-card-title">
+                      <span className="entity-card-icon" aria-hidden="true">
+                        <CustomerIcon kind="customer" />
+                      </span>
+                      <span>{customer.name}</span>
+                    </strong>
                     <span>{customer.email ?? "Sem e-mail"}</span>
                   </div>
                 </div>
                 <div className="detail-list">
                   <div>
-                    <span>Telefone</span>
+                    <span className="detail-label">
+                      <CustomerIcon kind="phone" /> Telefone
+                    </span>
                     <strong>{customer.phone ?? "-"}</strong>
                   </div>
                   <div>
-                    <span>Notas</span>
+                    <span className="detail-label">
+                      <CustomerIcon kind="note" /> Notas
+                    </span>
                     <strong>{customer.notes ?? "-"}</strong>
                   </div>
                 </div>
                 <div className="button-row">
                   <button className="secondary-button" onClick={() => openEdit(customer)} type="button">
+                    <span className="button-icon" aria-hidden="true">
+                      <CustomerIcon kind="edit" />
+                    </span>
                     Editar
                   </button>
                   <button className="danger-button" onClick={() => void remove(customer)} type="button">
+                    <span className="button-icon" aria-hidden="true">
+                      <CustomerIcon kind="trash" />
+                    </span>
                     Excluir
                   </button>
                 </div>
@@ -191,6 +303,9 @@ export function CustomersPage() {
             Cancelar
           </button>
           <button className="primary-button" disabled={saving} onClick={() => void submit()} type="button">
+            <span className="button-icon" aria-hidden="true">
+              <CustomerIcon kind={editingCustomer ? "edit" : "plus"} />
+            </span>
             {saving ? "Salvando..." : editingCustomer ? "Atualizar cliente" : "Criar cliente"}
           </button>
         </div>

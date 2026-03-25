@@ -28,6 +28,10 @@ public class PlanAccessService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authenticated user not found"));
     }
 
+    public boolean isAdmin(Authentication authentication) {
+        return getAuthenticatedUser(authentication).getRole() == UserRole.ADMINISTRADOR;
+    }
+
     public void ensureUserCanAccess(Long targetUserId, Authentication authentication) {
         AppUser authenticatedUser = getAuthenticatedUser(authentication);
         if (authenticatedUser.getRole() == UserRole.ADMINISTRADOR) {

@@ -22,6 +22,7 @@ public record TripRequest(
         @DecimalMin("0.0") BigDecimal distanceKm,
         @DecimalMin("0.0") BigDecimal estimatedAmount,
         @DecimalMin("0.0") BigDecimal actualAmount,
+        @DecimalMin("0.0") BigDecimal tollAmount,
         @Size(max = 600) String notes
 ) {
 }

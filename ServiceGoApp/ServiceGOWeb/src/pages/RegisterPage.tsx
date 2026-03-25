@@ -1,10 +1,17 @@
 import { type FormEvent, useState } from "react";
-import { Link, Navigate, useLocation } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { authApi } from "../services/api";
 import { ApiError } from "../services/apiClient";
 
-function LoginIcon({ kind }: { kind: "mail" | "lock" }) {
+function RegisterIcon({ kind }: { kind: "user" | "mail" | "lock" }) {
   const icons = {
+    user: (
+      <>
+        <circle cx="12" cy="8" r="3.2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+        <path d="M5.5 19a6.5 6.5 0 0 1 13 0" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+      </>
+    ),
     mail: (
       <path
         d="M4 6.5 12 12l8-5.5M5.6 19h12.8c1.12 0 1.68 0 2.108-.218a2 2 0 0 0 .874-.874C21.6 17.48 21.6 16.92 21.6 15.8V8.2c0-1.12 0-1.68-.218-2.108a2 2 0 0 0-.874-.874C20.08 5 19.52 5 18.4 5H5.6c-1.12 0-1.68 0-2.108.218a2 2 0 0 0-.874.874C2.4 6.52 2.4 7.08 2.4 8.2v7.6c0 1.12 0 1.68.218 2.108a2 2 0 0 0 .874.874C3.92 19 4.48 19 5.6 19Z"
@@ -25,16 +32,7 @@ function LoginIcon({ kind }: { kind: "mail" | "lock" }) {
           strokeLinejoin="round"
           fill="none"
         />
-        <rect
-          x="4.4"
-          y="10.2"
-          width="15.2"
-          height="10.4"
-          rx="2.6"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          fill="none"
-        />
+        <rect x="4.4" y="10.2" width="15.2" height="10.4" rx="2.6" stroke="currentColor" strokeWidth="1.8" fill="none" />
       </>
     ),
   };
@@ -46,11 +44,11 @@ function LoginIcon({ kind }: { kind: "mail" | "lock" }) {
   );
 }
 
-export function LoginPage() {
-  const location = useLocation();
-  const { session, login } = useAuth();
-  const state = location.state as { registeredEmail?: string; successMessage?: string } | null;
-  const [email, setEmail] = useState(state?.registeredEmail ?? "");
+export function RegisterPage() {
+  const { session } = useAuth();
+  const navigate = useNavigate();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,16 +59,34 @@ export function LoginPage() {
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    if (!name.trim() || !email.trim() || !password) {
+      setError("Preencha nome, e-mail e senha.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("A senha precisa ter pelo menos 6 caracteres.");
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
-      await login(email.trim(), password);
+      await authApi.register({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+      });
+      navigate("/login", {
+        replace: true,
+        state: {
+          registeredEmail: email.trim().toLowerCase(),
+          successMessage: "Cadastro realizado com sucesso. Entre para começar seu período de teste.",
+        },
+      });
     } catch (nextError) {
-      setError(
-        nextError instanceof ApiError
-          ? nextError.message
-          : "Falha ao entrar no ServiceGO Web.",
-      );
+      setError(nextError instanceof ApiError ? nextError.message : "Falha ao criar sua conta no ServiceGO Web.");
     } finally {
       setLoading(false);
     }
@@ -79,21 +95,13 @@ export function LoginPage() {
   return (
     <div className="login-page">
       <div className="login-hero">
-        <div className="hero-stripes" aria-hidden="true">
-          <span className="hero-stripe hero-stripe-dark" />
-          <span className="hero-stripe hero-stripe-blue" />
-          <span className="hero-stripe hero-stripe-cyan" />
-        </div>
         <div className="login-brand-stack">
           <img className="login-logo" src="/ServiceGO.png" alt="ServiceGO" />
-          <div className="login-brand-copy">
-            <span className="eyebrow">Painel Web</span>
+          <div>
             <h1>ServiceGO Web</h1>
             <p>
-              Corridas, clientes, financeiro e agenda em uma experiência pensada
-              para telas maiores, com leitura clara e acesso direto.
+              Crie sua conta de motorista e comece a organizar corridas, clientes, veículos, agenda e financeiro no navegador.
             </p>
-            <div className="login-inline-band" aria-hidden="true" />
           </div>
         </div>
       </div>
@@ -102,24 +110,28 @@ export function LoginPage() {
         <div className="login-card-head">
           <div className="login-card-badge">SG</div>
           <div>
-            <span className="eyebrow">Acesso</span>
-
-            <p>Entre com a mesma conta usada no aplicativo.</p>
+            <span className="eyebrow">Cadastro</span>
+            <p>Seu acesso já nasce como motorista com período inicial de teste.</p>
           </div>
         </div>
+
+        <label className="field login-field">
+          <span>Nome</span>
+          <div className="input-shell">
+            <span className="input-icon">
+              <RegisterIcon kind="user" />
+            </span>
+            <input value={name} onChange={(event) => setName(event.target.value)} type="text" />
+          </div>
+        </label>
 
         <label className="field login-field">
           <span>E-mail</span>
           <div className="input-shell">
             <span className="input-icon">
-              <LoginIcon kind="mail" />
+              <RegisterIcon kind="mail" />
             </span>
-            <input
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              type="email"
-              placeholder="voce@exemplo.com"
-            />
+            <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" />
           </div>
         </label>
 
@@ -127,26 +139,22 @@ export function LoginPage() {
           <span>Senha</span>
           <div className="input-shell">
             <span className="input-icon">
-              <LoginIcon kind="lock" />
+              <RegisterIcon kind="lock" />
             </span>
-            <input
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              type="password"
-              placeholder="Sua senha"
-            />
+            <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" />
           </div>
         </label>
 
-        {state?.successMessage ? <div className="success-banner">{state.successMessage}</div> : null}
+        <p className="helper-text form-helper">Minímo de 6 caracteres. Depois você poderá alterar essa senha em Ajustes.</p>
+
         {error ? <div className="error-banner">{error}</div> : null}
 
         <div className="login-actions">
           <button className="primary-button" disabled={loading} type="submit">
-            {loading ? "Entrando..." : "Entrar no painel web"}
+            {loading ? "Criando conta..." : "Criar conta"}
           </button>
-          <Link className="text-link" to="/register">
-            Criar nova conta
+          <Link className="text-link" to="/login">
+            Já tenho conta
           </Link>
         </div>
       </form>

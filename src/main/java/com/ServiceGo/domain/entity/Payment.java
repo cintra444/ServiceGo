@@ -61,6 +61,10 @@ public class Payment {
     @Column(length = 600)
     private String notes;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_user_id", nullable = false)
+    private AppUser ownerUser;
+
     public Long getId() {
         return id;
     }
@@ -155,5 +159,13 @@ public class Payment {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public AppUser getOwnerUser() {
+        return ownerUser;
+    }
+
+    public void setOwnerUser(AppUser ownerUser) {
+        this.ownerUser = ownerUser;
     }
 }

@@ -19,6 +19,11 @@ import { hasPremiumAccess } from "../../utils/plan";
 import type { ConfiguracaoUsuarioRequest, DepreciacaoAlocacao, DepreciacaoModo } from "../../types/api";
 import type { SettingsStackParamList } from "../../navigation/types";
 
+const automaticPeriodOptions = [
+  { value: "MENSAL", label: "Em meses" },
+  { value: "ANUAL", label: "Em anos" },
+] as const;
+
 export function SettingsScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<SettingsStackParamList, "Settings">>();
   const { session, logout } = useAuth();
@@ -59,6 +64,12 @@ export function SettingsScreen() {
           : session?.plan?.status === "CANCELED"
             ? "Assinatura cancelada"
             : "Plano indisponível";
+
+  useEffect(() => {
+    if (depreciacaoModo === "AUTOMATICA" && depreciacaoAlocacao === "POR_KM") {
+      setDepreciacaoAlocacao("ANUAL");
+    }
+  }, [depreciacaoAlocacao, depreciacaoModo]);
 
   const setConfigValues = (config: {
     sincronizarCalendario: boolean;
@@ -192,23 +203,23 @@ export function SettingsScreen() {
 
     if (isAutomatic) {
       if (valorAtual === undefined || valorEstimado === undefined) {
-        Alert.alert("Configuração", "No modo automática, informe valor atual e valor estimado.");
+        Alert.alert("Configuração", "No modo automático, informe valor atual e valor de venda.");
         return;
       }
       if (valorEstimado > valorAtual) {
-        Alert.alert("Configuração", "Valor estimado não pode ser maior que o valor atual.");
+        Alert.alert("Configuração", "Valor de venda não pode ser maior que o valor atual.");
         return;
       }
-      if (isPorKm && (kmBase === undefined || kmBase <= 0)) {
-        Alert.alert("Configuração", "Informe km base de depreciação maior que zero.");
+      if (kmBase === undefined || kmBase <= 0) {
+        Alert.alert("Configuração", "Informe o km rodado no período com valor maior que zero.");
         return;
       }
       if (isMensal && (!Number.isInteger(mesesBase) || mesesBase <= 0)) {
-        Alert.alert("Configuração", "Informe meses base de depreciação válido.");
+        Alert.alert("Configuração", "Informe quantos meses compõem esse período.");
         return;
       }
       if (isAnual && (anosBase === undefined || anosBase <= 0)) {
-        Alert.alert("Configuração", "Informe anos base de depreciação maior que zero.");
+        Alert.alert("Configuração", "Informe quantos anos compõem esse período.");
         return;
       }
     } else {
@@ -237,7 +248,7 @@ export function SettingsScreen() {
         ? {
             valorAtualVeiculo: valorAtual,
             valorEstimadoVeiculo: valorEstimado,
-            ...(isPorKm ? { kmBaseDepreciacao: kmBase } : {}),
+            kmBaseDepreciacao: kmBase,
             ...(isMensal ? { mesesBaseDepreciacao: mesesBase } : {}),
             ...(isAnual ? { anosBaseDepreciacao: anosBase } : {}),
           }
@@ -366,10 +377,10 @@ export function SettingsScreen() {
           ]}
         />
         <ChipSelect
-          label="Alocação"
+          label={isAutomatic ? "Período de referência" : "Alocação"}
           value={depreciacaoAlocacao}
           onChange={(next) => setDepreciacaoAlocacao(next as DepreciacaoAlocacao)}
-          options={[
+          options={isAutomatic ? [...automaticPeriodOptions] : [
             { value: "POR_KM", label: depreciacaoAlocacaoLabels.POR_KM },
             { value: "MENSAL", label: depreciacaoAlocacaoLabels.MENSAL },
             { value: "ANUAL", label: depreciacaoAlocacaoLabels.ANUAL },
@@ -380,7 +391,7 @@ export function SettingsScreen() {
           <>
             <View style={styles.infoRow}>
               <Ionicons name="flash-outline" size={16} color={colors.subtext} />
-              <Text style={styles.hint}>Informe os valores do veículo e apenas uma base de cálculo.</Text>
+              <Text style={styles.hint}>A depreciação automática sempre vira um custo por km.</Text>
             </View>
             <SGInput
               label="Valor atual do veículo"
@@ -390,37 +401,35 @@ export function SettingsScreen() {
               placeholder="Ex: 65000"
             />
             <SGInput
-              label="Valor estimado do veículo"
+              label="Valor de venda ao fim do período"
               value={valorEstimadoVeiculo}
               onChangeText={setValorEstimadoVeiculo}
               keyboardType="decimal-pad"
               placeholder="Ex: 30000"
             />
-            {isPorKm ? (
-              <SGInput
-                label="Km base de depreciação"
-                value={kmBaseDepreciacao}
-                onChangeText={setKmBaseDepreciacao}
-                keyboardType="decimal-pad"
-                placeholder="Ex: 120000"
-              />
-            ) : null}
+            <SGInput
+              label="Km rodado no período"
+              value={kmBaseDepreciacao}
+              onChangeText={setKmBaseDepreciacao}
+              keyboardType="decimal-pad"
+              placeholder="Ex: 60000"
+            />
             {isMensal ? (
               <SGInput
-                label="Meses base de depreciação"
+                label="Quantidade de meses no período"
                 value={mesesBaseDepreciacao}
                 onChangeText={setMesesBaseDepreciacao}
                 keyboardType="number-pad"
-                placeholder="Ex: 48"
+                placeholder="Ex: 12"
               />
             ) : null}
             {isAnual ? (
               <SGInput
-                label="Anos base de depreciação"
+                label="Quantidade de anos no período"
                 value={anosBaseDepreciacao}
                 onChangeText={setAnosBaseDepreciacao}
                 keyboardType="decimal-pad"
-                placeholder="Ex: 4"
+                placeholder="Ex: 1"
               />
             ) : null}
           </>

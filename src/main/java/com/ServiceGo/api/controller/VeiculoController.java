@@ -9,12 +9,14 @@ import com.ServiceGo.domain.entity.Veiculo;
 import com.ServiceGo.domain.enums.UserRole;
 import com.ServiceGo.domain.repository.AppUserRepository;
 import com.ServiceGo.domain.repository.VeiculoRepository;
+import com.ServiceGo.security.PlanAccessService;
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.Locale;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,58 +34,64 @@ public class VeiculoController {
 
     private final VeiculoRepository veiculoRepository;
     private final AppUserRepository appUserRepository;
+    private final PlanAccessService planAccessService;
 
-    public VeiculoController(VeiculoRepository veiculoRepository, AppUserRepository appUserRepository) {
+    public VeiculoController(
+            VeiculoRepository veiculoRepository,
+            AppUserRepository appUserRepository,
+            PlanAccessService planAccessService
+    ) {
         this.veiculoRepository = veiculoRepository;
         this.appUserRepository = appUserRepository;
+        this.planAccessService = planAccessService;
     }
 
     @GetMapping
-    public List<VeiculoResponse> list() {
-        return veiculoRepository.findAll().stream().map(this::toResponse).toList();
+    public List<VeiculoResponse> list(Authentication authentication) {
+        AppUser authenticatedUser = planAccessService.getAuthenticatedUser(authentication);
+        List<Veiculo> veiculos = authenticatedUser.getRole() == UserRole.ADMINISTRADOR
+                ? veiculoRepository.findAll()
+                : veiculoRepository.findByDonoVeiculoIdOrderByModeloAsc(authenticatedUser.getId());
+        return veiculos.stream().map(this::toResponse).toList();
     }
 
     @GetMapping("/{id}")
-    public VeiculoResponse getById(@PathVariable Long id) {
-        Veiculo veiculo = veiculoRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Veiculo nao encontrado"));
+    public VeiculoResponse getById(@PathVariable Long id, Authentication authentication) {
+        Veiculo veiculo = resolveVeiculo(id, authentication);
         return toResponse(veiculo);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public VeiculoResponse create(@Valid @RequestBody VeiculoRequest request) {
+    public VeiculoResponse create(@Valid @RequestBody VeiculoRequest request, Authentication authentication) {
         String placa = request.placa().trim().toUpperCase(Locale.ROOT);
         if (veiculoRepository.existsByPlacaIgnoreCase(placa)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Placa ja cadastrada");
         }
 
         Veiculo veiculo = new Veiculo();
-        applyRequest(request, veiculo);
+        applyRequest(request, veiculo, authentication);
         veiculo.setPlaca(placa);
         return toResponse(veiculoRepository.save(veiculo));
     }
 
     @PutMapping("/{id}")
-    public VeiculoResponse update(@PathVariable Long id, @Valid @RequestBody VeiculoRequest request) {
-        Veiculo veiculo = veiculoRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Veiculo nao encontrado"));
+    public VeiculoResponse update(@PathVariable Long id, @Valid @RequestBody VeiculoRequest request, Authentication authentication) {
+        Veiculo veiculo = resolveVeiculo(id, authentication);
         String placa = request.placa().trim().toUpperCase(Locale.ROOT);
         if (!placa.equalsIgnoreCase(veiculo.getPlaca()) && veiculoRepository.existsByPlacaIgnoreCase(placa)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Placa ja cadastrada");
         }
-        applyRequest(request, veiculo);
+        applyRequest(request, veiculo, authentication);
         veiculo.setPlaca(placa);
         return toResponse(veiculoRepository.save(veiculo));
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
-        if (!veiculoRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Veiculo nao encontrado");
-        }
-        veiculoRepository.deleteById(id);
+    public void delete(@PathVariable Long id, Authentication authentication) {
+        Veiculo veiculo = resolveVeiculo(id, authentication);
+        veiculoRepository.delete(veiculo);
     }
 
     @PostMapping("/depreciacao-km")
@@ -101,13 +109,27 @@ public class VeiculoController {
         return new DepreciacaoKmResponse(depreciacaoTotal, depreciacaoPorKm);
     }
 
-    private void applyRequest(VeiculoRequest request, Veiculo veiculo) {
+    private void applyRequest(VeiculoRequest request, Veiculo veiculo, Authentication authentication) {
+        AppUser authenticatedUser = planAccessService.getAuthenticatedUser(authentication);
+        Long donoUsuarioId = authenticatedUser.getRole() == UserRole.ADMINISTRADOR
+                ? request.donoUsuarioId()
+                : authenticatedUser.getId();
         veiculo.setModelo(request.modelo().trim());
         veiculo.setAno(request.ano());
         veiculo.setCor(request.cor() == null ? null : request.cor().trim());
         veiculo.setAtivo(request.ativo());
         veiculo.setKmAtual(request.kmAtual());
-        veiculo.setDonoVeiculo(resolveMotorista(request.donoUsuarioId()));
+        veiculo.setDonoVeiculo(resolveMotorista(donoUsuarioId));
+    }
+
+    private Veiculo resolveVeiculo(Long id, Authentication authentication) {
+        AppUser authenticatedUser = planAccessService.getAuthenticatedUser(authentication);
+        if (authenticatedUser.getRole() == UserRole.ADMINISTRADOR) {
+            return veiculoRepository.findById(id)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Veiculo nao encontrado"));
+        }
+        return veiculoRepository.findByIdAndDonoVeiculoId(id, authenticatedUser.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Veiculo nao encontrado"));
     }
 
     private AppUser resolveMotorista(Long donoUsuarioId) {

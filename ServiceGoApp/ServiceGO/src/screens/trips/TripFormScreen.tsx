@@ -61,6 +61,7 @@ export function TripFormScreen({ navigation, route }: Props) {
   const [endAt, setEndAt] = useState(toPtBrDateTime(trip?.endAt));
   const [distanceKm, setDistanceKm] = useState(trip?.distanceKm ? String(trip.distanceKm) : "");
   const [estimatedMinutes, setEstimatedMinutes] = useState("");
+  const [tollAmount, setTollAmount] = useState(trip?.tollAmount ? String(trip.tollAmount) : "");
   const [estimatedAmount, setEstimatedAmount] = useState(
     trip?.estimatedAmount ? String(trip.estimatedAmount) : "",
   );
@@ -160,8 +161,11 @@ export function TripFormScreen({ navigation, route }: Props) {
       fuelPrice,
       fuelEfficiencyKmPerLiter,
       estimatedMinutes: estimatedMinutesValue,
+      tollCost: parseNumber(tollAmount) ?? 0,
     });
     const fuelCost = estimate.fuelCost;
+    const operationalDistanceKm = estimate.operationalDistanceKm;
+    const tollCost = estimate.tollCost;
     const depreciationCost = estimate.depreciationCost;
     const totalCost = estimate.totalCost;
     const realProfit = estimate.profit;
@@ -186,7 +190,9 @@ export function TripFormScreen({ navigation, route }: Props) {
     return {
       tripValue,
       estimatedMinutesValue,
+      operationalDistanceKm,
       fuelCost,
+      tollCost,
       depreciationCost,
       totalCost,
       realProfit,
@@ -263,6 +269,7 @@ export function TripFormScreen({ navigation, route }: Props) {
         distanceKm: parseNumber(distanceKm),
         estimatedAmount: parseNumber(estimatedAmount),
         actualAmount: parseNumber(actualAmount),
+        tollAmount: parseNumber(tollAmount),
         notes: contextualNotes,
       };
       if (trip?.id) {
@@ -338,6 +345,13 @@ export function TripFormScreen({ navigation, route }: Props) {
           placeholder="Ex: 22"
         />
         <SGInput
+          label="Pedágio"
+          value={tollAmount}
+          onChangeText={setTollAmount}
+          keyboardType="decimal-pad"
+          placeholder="Ex: 12,00"
+        />
+        <SGInput
           label="Valor estimado"
           value={estimatedAmount}
           onChangeText={setEstimatedAmount}
@@ -371,7 +385,9 @@ export function TripFormScreen({ navigation, route }: Props) {
 
       {isPremium ? (
         <SGCard title="Estimativa de lucro" subtitle="Baseada no combustivel e depreciacao configurados">
+          <Text style={styles.supportText}>Km operacional (ida e volta): {calculator.operationalDistanceKm.toFixed(2)} km</Text>
           <Text style={styles.supportText}>Combustível: {currency(calculator.fuelCost)}</Text>
+          <Text style={styles.supportText}>Pedágio: {currency(calculator.tollCost)}</Text>
           <Text style={styles.supportText}>Depreciação: {currency(calculator.depreciationCost)}</Text>
           <Text style={styles.supportText}>Custo total: {currency(calculator.totalCost)}</Text>
           <Text style={[styles.estimateValue, { color: calculator.realProfit >= 0 ? colors.success : colors.danger }]}>
@@ -382,6 +398,7 @@ export function TripFormScreen({ navigation, route }: Props) {
           <Text style={[styles.estimateBadge, { color: calculator.color }]}>
             {calculator.isReady ? calculator.label : "Preencha valor, distancia e tempo estimado"}
           </Text>
+          <Text style={styles.supportText}>A distância informada é convertida em ida e volta para o cálculo operacional.</Text>
         </SGCard>
       ) : (
         <PremiumGate

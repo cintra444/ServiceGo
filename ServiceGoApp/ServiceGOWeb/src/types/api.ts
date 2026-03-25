@@ -47,6 +47,12 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface RegisterRequest {
+  name: string;
+  email: string;
+  password: string;
+}
+
 export interface LoginResponse {
   token: string;
   tokenType: string;
@@ -54,6 +60,20 @@ export interface LoginResponse {
   role: `ROLE_${UserRole}` | string;
   userId?: number;
   plan?: SubscriptionPlan;
+}
+
+export interface RegisterResponse {
+  id: number;
+  name: string;
+  email: string;
+  role: UserRole | `ROLE_${UserRole}` | string;
+  active: boolean;
+  createdAt: string;
+  plan?: SubscriptionPlan;
+}
+
+export interface UserStatusUpdateRequest {
+  active: boolean;
 }
 
 export interface CustomerRequest {
@@ -111,6 +131,7 @@ export interface Trip {
   distanceKm?: number | null;
   estimatedAmount?: number | null;
   actualAmount?: number | null;
+  tollAmount?: number | null;
   notes?: string | null;
   createdAt?: string;
 }
@@ -128,6 +149,7 @@ export interface TripRequest {
   distanceKm?: number;
   estimatedAmount?: number;
   actualAmount?: number;
+  tollAmount?: number;
   notes?: string;
 }
 

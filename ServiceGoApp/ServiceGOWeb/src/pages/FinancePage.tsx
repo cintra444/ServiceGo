@@ -3,14 +3,176 @@ import { DataState } from "../components/DataState";
 import { Modal } from "../components/Modal";
 import { PageHeader } from "../components/PageHeader";
 import { Panel } from "../components/Panel";
+import { PickerInput } from "../components/PickerInput";
 import { StatCard } from "../components/StatCard";
 import { useAuth } from "../context/AuthContext";
 import { expenseCategoryLabels, paymentMethodLabels, paymentStatusLabels } from "../constants/labels";
 import { customersApi, expensesApi, paymentsApi, relatoriosApi, tripsApi, veiculosApi } from "../services/api";
 import { ApiError } from "../services/apiClient";
 import type { Customer, Expense, ExpenseCategory, Payment, PaymentMethod, PaymentStatus, RelatorioFinanceiro, Trip, Veiculo } from "../types/api";
-import { cleanText, currency, dateTime, parseNumber, toIsoFromPtBr, toOffsetIso, toPtBrDateTime } from "../utils/format";
+import { cleanText, currency, dateTime, formatCurrencyInput, parseCurrencyInput, parseNumber, toIsoFromPtBr, toOffsetIso, toPtBrDateTime } from "../utils/format";
 import { hasPremiumAccess } from "../utils/plan";
+
+function FinanceIcon({
+  kind,
+}: {
+  kind:
+    | "refresh"
+    | "payment"
+    | "expense"
+    | "revenue"
+    | "cost"
+    | "balance"
+    | "report"
+    | "vehicle"
+    | "calendar"
+    | "money"
+    | "method"
+    | "status"
+    | "edit"
+    | "trash";
+}) {
+  const icons = {
+    refresh: (
+      <path
+        d="M20 11a8 8 0 1 0 2 5.3M20 4v7h-7"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    ),
+    payment: (
+      <>
+        <rect x="4.5" y="6.5" width="15" height="11" rx="2.2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+        <path d="M4.5 10.3h15" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      </>
+    ),
+    expense: (
+      <>
+        <path
+          d="M7 5.5h10c1 0 1.8.8 1.8 1.8v9.4c0 1-.8 1.8-1.8 1.8H9.8L5.2 21v-3.5H7c-1 0-1.8-.8-1.8-1.8V7.3c0-1 .8-1.8 1.8-1.8Z"
+          fill="none"
+          stroke="currentColor"
+          strokeLinejoin="round"
+          strokeWidth="1.8"
+        />
+        <path d="M8.7 10.1h6.6M8.7 13.5h4.1" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+      </>
+    ),
+    revenue: (
+      <>
+        <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="1.8" />
+        <path
+          d="M9 12.2c.6.9 1.6 1.4 3 1.4 1.6 0 2.7-.7 2.7-1.9 0-1.1-.8-1.7-2.5-2l-.5-.1c-1.8-.3-2.7-.9-2.7-2.1 0-1.4 1.3-2.4 3.2-2.4 1.3 0 2.3.4 3 1.2M12 7.2v9.6"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.6"
+        />
+      </>
+    ),
+    cost: (
+      <>
+        <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="1.8" />
+        <path d="M8.5 12h7" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+      </>
+    ),
+    balance: (
+      <>
+        <path
+          d="M5.5 15.5 9.7 11l2.7 2.7 6.1-6.2"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.8"
+        />
+        <path d="M14.7 7.5h3.8v3.8" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+      </>
+    ),
+    report: (
+      <>
+        <path
+          d="M7 5h7l4 4v9.5c0 1-.8 1.8-1.8 1.8H7.8c-1 0-1.8-.8-1.8-1.8V6.8C6 5.8 6.8 5 7.8 5Z"
+          fill="none"
+          stroke="currentColor"
+          strokeLinejoin="round"
+          strokeWidth="1.8"
+        />
+        <path d="M14 5v4h4M9 13.4h6M9 16.8h4" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+      </>
+    ),
+    vehicle: (
+      <>
+        <path
+          d="M6.5 15.5h11l-1.1-4a2 2 0 0 0-1.9-1.5H9.6a2 2 0 0 0-1.9 1.5l-1.2 4Z"
+          fill="none"
+          stroke="currentColor"
+          strokeLinejoin="round"
+          strokeWidth="1.8"
+        />
+        <circle cx="8.5" cy="17.5" r="1.5" fill="currentColor" />
+        <circle cx="15.5" cy="17.5" r="1.5" fill="currentColor" />
+      </>
+    ),
+    calendar: (
+      <>
+        <path
+          d="M7 4.8v2.4M17 4.8v2.4M5.5 8.2h13M6.8 6.5h10.4c.9 0 1.6.7 1.6 1.6v9.9c0 .9-.7 1.6-1.6 1.6H6.8c-.9 0-1.6-.7-1.6-1.6V8.1c0-.9.7-1.6 1.6-1.6Z"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.8"
+        />
+      </>
+    ),
+    money: (
+      <>
+        <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="1.8" />
+        <path d="M12 8v8M9 10.2c.6-.8 1.5-1.2 2.8-1.2 1.8 0 2.9.8 2.9 2 0 1-.7 1.7-2.4 2l-.7.1c-1.7.3-2.6 1-2.6 2.2 0 1.3 1.2 2.2 3 2.2 1.3 0 2.4-.4 3-1.2" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" />
+      </>
+    ),
+    method: (
+      <>
+        <rect x="4.5" y="7" width="15" height="10" rx="2.2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+        <circle cx="9" cy="12" r="1.3" fill="currentColor" />
+        <path d="M12 12h3.7" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+      </>
+    ),
+    status: (
+      <>
+        <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="1.8" />
+        <path d="m8.8 12 2.1 2.1 4.3-4.4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+      </>
+    ),
+    edit: (
+      <>
+        <path d="M4 20h4.3L19 9.3 14.7 5 4 15.7V20Z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.8" />
+        <path d="m12.8 6.9 4.3 4.3" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+      </>
+    ),
+    trash: (
+      <path
+        d="M5 7h14M9 7V5.8c0-.7.5-1.3 1.2-1.3h3.6c.7 0 1.2.6 1.2 1.3V7m-8.7 0 .8 11c.1 1 .9 1.8 1.9 1.8h5.9c1 0 1.8-.8 1.9-1.8l.8-11"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.8"
+      />
+    ),
+  };
+
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      {icons[kind]}
+    </svg>
+  );
+}
 
 const emptyPaymentForm = {
   tripId: "",
@@ -107,7 +269,7 @@ export function FinancePage() {
       customerId: payment.customerId ? String(payment.customerId) : "",
       method: payment.method,
       status: payment.status,
-      amount: String(payment.amount ?? ""),
+      amount: payment.amount != null ? formatCurrencyInput(String(Math.round(Number(payment.amount) * 100))) : "",
       pagamentoParcial: payment.pagamentoParcial ? "true" : "false",
       numeroParcela: payment.numeroParcela ? String(payment.numeroParcela) : "",
       paidAt: toPtBrDateTime(payment.paidAt),
@@ -130,7 +292,7 @@ export function FinancePage() {
       tripId: expense.tripId ? String(expense.tripId) : "",
       veiculoId: String(expense.veiculoId ?? ""),
       category: expense.category,
-      amount: String(expense.amount ?? ""),
+      amount: expense.amount != null ? formatCurrencyInput(String(Math.round(Number(expense.amount) * 100))) : "",
       description: expense.description ?? "",
       occurredAt: toPtBrDateTime(expense.occurredAt),
     });
@@ -141,7 +303,7 @@ export function FinancePage() {
     if (!session?.token) {
       return;
     }
-    const amount = parseNumber(paymentForm.amount);
+    const amount = parseCurrencyInput(paymentForm.amount);
     if (!amount) {
       setError("Informe um valor válido para o pagamento.");
       return;
@@ -190,7 +352,7 @@ export function FinancePage() {
     if (!session?.token) {
       return;
     }
-    const amount = parseNumber(expenseForm.amount);
+    const amount = parseCurrencyInput(expenseForm.amount);
     const veiculoIdValue = Number(expenseForm.veiculoId);
     const occurredAt = toIsoFromPtBr(expenseForm.occurredAt);
     if (!amount || !veiculoIdValue || !occurredAt) {
@@ -285,12 +447,21 @@ export function FinancePage() {
         action={
           <div className="button-row">
             <button className="secondary-button" onClick={() => void load()} type="button">
+              <span className="button-icon" aria-hidden="true">
+                <FinanceIcon kind="refresh" />
+              </span>
               Atualizar
             </button>
             <button className="secondary-button" onClick={openPaymentCreate} type="button">
+              <span className="button-icon" aria-hidden="true">
+                <FinanceIcon kind="payment" />
+              </span>
               Novo pagamento
             </button>
             <button className="primary-button" onClick={openExpenseCreate} type="button">
+              <span className="button-icon" aria-hidden="true">
+                <FinanceIcon kind="expense" />
+              </span>
               Nova despesa
             </button>
           </div>
@@ -300,9 +471,9 @@ export function FinancePage() {
       {error ? <div className="error-banner">{error}</div> : null}
 
       <div className="stats-grid">
-        <StatCard label="Receitas" value={currency(totals.receita)} tone="success" />
-        <StatCard label="Despesas" value={currency(totals.custo)} tone="danger" />
-        <StatCard label="Saldo" value={currency(totals.saldo)} />
+        <StatCard label="Receitas" value={currency(totals.receita)} tone="success" icon={<FinanceIcon kind="revenue" />} />
+        <StatCard label="Despesas" value={currency(totals.custo)} tone="danger" icon={<FinanceIcon kind="cost" />} />
+        <StatCard label="Saldo" value={currency(totals.saldo)} icon={<FinanceIcon kind="balance" />} />
       </div>
 
       {isPremium ? (
@@ -321,33 +492,36 @@ export function FinancePage() {
             </label>
             <label className="field">
               <span>Data inicial</span>
-              <input value={inicio} onChange={(event) => setInicio(event.target.value)} placeholder="01/03/2026" />
+              <PickerInput value={inicio} onChange={setInicio} mode="date" placeholder="01/03/2026" />
             </label>
             <label className="field">
               <span>Data final</span>
-              <input value={fim} onChange={(event) => setFim(event.target.value)} placeholder="31/03/2026" />
+              <PickerInput value={fim} onChange={setFim} mode="date" placeholder="31/03/2026" />
             </label>
           </div>
           <div className="button-row">
             <button className="primary-button" disabled={loadingReport} onClick={() => void loadReport()} type="button">
+              <span className="button-icon" aria-hidden="true">
+                <FinanceIcon kind="report" />
+              </span>
               {loadingReport ? "Gerando..." : "Gerar relatório"}
             </button>
           </div>
           {relatorio ? (
             <div className="detail-grid">
-              <div><span>Período</span><strong>{dateTime(relatorio.periodoInicio)} até {dateTime(relatorio.periodoFim)}</strong></div>
-              <div><span>Total de corridas</span><strong>{relatorio.totalCorridas}</strong></div>
-              <div><span>KM total</span><strong>{Number(relatorio.kmTotal ?? 0).toFixed(2)} km</strong></div>
-              <div><span>Receita total</span><strong>{currency(relatorio.receitaTotal)}</strong></div>
-              <div><span>Custos variáveis</span><strong>{currency(relatorio.custosVariaveisTotal)}</strong></div>
-              <div><span>Depreciação</span><strong>{currency(relatorio.depreciacaoTotalPeriodo)}</strong></div>
-              <div><span>Custo operacional total</span><strong>{currency(relatorio.custoOperacionalTotal)}</strong></div>
-              <div><span>Custo operacional por km</span><strong>{currency(relatorio.custoOperacionalPorKm)}</strong></div>
-              <div><span>Lucro total</span><strong>{currency(relatorio.lucroTotal)}</strong></div>
-              <div><span>Lucro por km</span><strong>{currency(relatorio.lucroPorKm)}</strong></div>
-              <div><span>Lucro por corrida</span><strong>{currency(relatorio.lucroPorCorrida)}</strong></div>
-              <div><span>Lucro por dia</span><strong>{currency(relatorio.lucroPorDia)}</strong></div>
-              <div><span>Lucro por mês</span><strong>{currency(relatorio.lucroPorMes)}</strong></div>
+              <div><span className="detail-label"><FinanceIcon kind="calendar" /> Período</span><strong>{dateTime(relatorio.periodoInicio)} até {dateTime(relatorio.periodoFim)}</strong></div>
+              <div><span className="detail-label"><FinanceIcon kind="report" /> Total de corridas</span><strong>{relatorio.totalCorridas}</strong></div>
+              <div><span className="detail-label"><FinanceIcon kind="vehicle" /> KM total</span><strong>{Number(relatorio.kmTotal ?? 0).toFixed(2)} km</strong></div>
+              <div><span className="detail-label"><FinanceIcon kind="revenue" /> Receita total</span><strong>{currency(relatorio.receitaTotal)}</strong></div>
+              <div><span className="detail-label"><FinanceIcon kind="cost" /> Custos variáveis</span><strong>{currency(relatorio.custosVariaveisTotal)}</strong></div>
+              <div><span className="detail-label"><FinanceIcon kind="expense" /> Depreciação</span><strong>{currency(relatorio.depreciacaoTotalPeriodo)}</strong></div>
+              <div><span className="detail-label"><FinanceIcon kind="cost" /> Custo operacional total</span><strong>{currency(relatorio.custoOperacionalTotal)}</strong></div>
+              <div><span className="detail-label"><FinanceIcon kind="vehicle" /> Custo operacional por km</span><strong>{currency(relatorio.custoOperacionalPorKm)}</strong></div>
+              <div><span className="detail-label"><FinanceIcon kind="balance" /> Lucro total</span><strong>{currency(relatorio.lucroTotal)}</strong></div>
+              <div><span className="detail-label"><FinanceIcon kind="balance" /> Lucro por km</span><strong>{currency(relatorio.lucroPorKm)}</strong></div>
+              <div><span className="detail-label"><FinanceIcon kind="payment" /> Lucro por corrida</span><strong>{currency(relatorio.lucroPorCorrida)}</strong></div>
+              <div><span className="detail-label"><FinanceIcon kind="calendar" /> Lucro por dia</span><strong>{currency(relatorio.lucroPorDia)}</strong></div>
+              <div><span className="detail-label"><FinanceIcon kind="calendar" /> Lucro por mês</span><strong>{currency(relatorio.lucroPorMes)}</strong></div>
             </div>
           ) : (
             <DataState message="Carregue o relatório para exibir os indicadores consolidados." />
@@ -366,12 +540,30 @@ export function FinancePage() {
           {payments.map((payment) => (
             <div className="list-row" key={payment.id}>
               <div>
-                <strong>{currency(payment.amount)} - {paymentMethodLabels[payment.method]}</strong>
-                <span>{paymentStatusLabels[payment.status]} • {dateTime(payment.paidAt ?? payment.dueAt)}</span>
+                <strong className="list-title-with-icon">
+                  <span className="list-title-icon" aria-hidden="true">
+                    <FinanceIcon kind="payment" />
+                  </span>
+                  <span>{currency(payment.amount)} - {paymentMethodLabels[payment.method]}</span>
+                </strong>
+                <span className="list-meta-with-icons">
+                  <span className="detail-label"><FinanceIcon kind="status" /> {paymentStatusLabels[payment.status]}</span>
+                  <span className="detail-label"><FinanceIcon kind="calendar" /> {dateTime(payment.paidAt ?? payment.dueAt)}</span>
+                </span>
               </div>
               <div className="button-row">
-                <button className="secondary-button" onClick={() => openPaymentEdit(payment)} type="button">Editar</button>
-                <button className="danger-button" onClick={() => void removePayment(payment)} type="button">Excluir</button>
+                <button className="secondary-button" onClick={() => openPaymentEdit(payment)} type="button">
+                  <span className="button-icon" aria-hidden="true">
+                    <FinanceIcon kind="edit" />
+                  </span>
+                  Editar
+                </button>
+                <button className="danger-button" onClick={() => void removePayment(payment)} type="button">
+                  <span className="button-icon" aria-hidden="true">
+                    <FinanceIcon kind="trash" />
+                  </span>
+                  Excluir
+                </button>
               </div>
             </div>
           ))}
@@ -383,12 +575,30 @@ export function FinancePage() {
           {expenses.map((expense) => (
             <div className="list-row" key={expense.id}>
               <div>
-                <strong>{currency(expense.amount)} - {expenseCategoryLabels[expense.category]}</strong>
-                <span>{expense.veiculoPlaca ?? `ID ${expense.veiculoId}`} • {dateTime(expense.occurredAt)}</span>
+                <strong className="list-title-with-icon">
+                  <span className="list-title-icon" aria-hidden="true">
+                    <FinanceIcon kind="expense" />
+                  </span>
+                  <span>{currency(expense.amount)} - {expenseCategoryLabels[expense.category]}</span>
+                </strong>
+                <span className="list-meta-with-icons">
+                  <span className="detail-label"><FinanceIcon kind="vehicle" /> {expense.veiculoPlaca ?? `ID ${expense.veiculoId}`}</span>
+                  <span className="detail-label"><FinanceIcon kind="calendar" /> {dateTime(expense.occurredAt)}</span>
+                </span>
               </div>
               <div className="button-row">
-                <button className="secondary-button" onClick={() => openExpenseEdit(expense)} type="button">Editar</button>
-                <button className="danger-button" onClick={() => void removeExpense(expense)} type="button">Excluir</button>
+                <button className="secondary-button" onClick={() => openExpenseEdit(expense)} type="button">
+                  <span className="button-icon" aria-hidden="true">
+                    <FinanceIcon kind="edit" />
+                  </span>
+                  Editar
+                </button>
+                <button className="danger-button" onClick={() => void removeExpense(expense)} type="button">
+                  <span className="button-icon" aria-hidden="true">
+                    <FinanceIcon kind="trash" />
+                  </span>
+                  Excluir
+                </button>
               </div>
             </div>
           ))}
@@ -423,7 +633,7 @@ export function FinancePage() {
               {Object.entries(paymentStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
           </label>
-          <label className="field"><span>Valor</span><input value={paymentForm.amount} onChange={(event) => setPaymentForm({ ...paymentForm, amount: event.target.value })} /></label>
+          <label className="field"><span>Valor</span><input className="money-input" inputMode="decimal" value={paymentForm.amount} onChange={(event) => setPaymentForm({ ...paymentForm, amount: formatCurrencyInput(event.target.value) })} placeholder="R$ 0,00" /></label>
           <label className="field">
             <span>Pagamento parcial</span>
             <select value={paymentForm.pagamentoParcial} onChange={(event) => setPaymentForm({ ...paymentForm, pagamentoParcial: event.target.value })}>
@@ -432,14 +642,19 @@ export function FinancePage() {
             </select>
           </label>
           <label className="field"><span>Número da parcela</span><input value={paymentForm.numeroParcela} onChange={(event) => setPaymentForm({ ...paymentForm, numeroParcela: event.target.value })} /></label>
-          <label className="field"><span>Pago em</span><input value={paymentForm.paidAt} onChange={(event) => setPaymentForm({ ...paymentForm, paidAt: event.target.value })} /></label>
-          <label className="field"><span>Vence em</span><input value={paymentForm.dueAt} onChange={(event) => setPaymentForm({ ...paymentForm, dueAt: event.target.value })} /></label>
+          <label className="field"><span>Pago em</span><PickerInput value={paymentForm.paidAt} onChange={(value) => setPaymentForm({ ...paymentForm, paidAt: value })} mode="datetime" placeholder="DD/MM/AAAA HH:mm" /></label>
+          <label className="field"><span>Vence em</span><PickerInput value={paymentForm.dueAt} onChange={(value) => setPaymentForm({ ...paymentForm, dueAt: value })} mode="datetime" placeholder="DD/MM/AAAA HH:mm" /></label>
           <label className="field"><span>Código de referência</span><input value={paymentForm.referenceCode} onChange={(event) => setPaymentForm({ ...paymentForm, referenceCode: event.target.value })} /></label>
           <label className="field field-full"><span>Observações</span><textarea rows={3} value={paymentForm.notes} onChange={(event) => setPaymentForm({ ...paymentForm, notes: event.target.value })} /></label>
         </div>
         <div className="button-row modal-actions">
           <button className="secondary-button" onClick={() => setPaymentModalOpen(false)} type="button">Cancelar</button>
-          <button className="primary-button" disabled={saving} onClick={() => void savePayment()} type="button">{saving ? "Salvando..." : editingPayment ? "Atualizar pagamento" : "Criar pagamento"}</button>
+          <button className="primary-button" disabled={saving} onClick={() => void savePayment()} type="button">
+            <span className="button-icon" aria-hidden="true">
+              <FinanceIcon kind={editingPayment ? "edit" : "payment"} />
+            </span>
+            {saving ? "Salvando..." : editingPayment ? "Atualizar pagamento" : "Criar pagamento"}
+          </button>
         </div>
       </Modal>
 
@@ -465,13 +680,18 @@ export function FinancePage() {
               {Object.entries(expenseCategoryLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
           </label>
-          <label className="field"><span>Valor</span><input value={expenseForm.amount} onChange={(event) => setExpenseForm({ ...expenseForm, amount: event.target.value })} /></label>
-          <label className="field"><span>Data da despesa</span><input value={expenseForm.occurredAt} onChange={(event) => setExpenseForm({ ...expenseForm, occurredAt: event.target.value })} /></label>
+          <label className="field"><span>Valor</span><input className="money-input" inputMode="decimal" value={expenseForm.amount} onChange={(event) => setExpenseForm({ ...expenseForm, amount: formatCurrencyInput(event.target.value) })} placeholder="R$ 0,00" /></label>
+          <label className="field"><span>Data da despesa</span><PickerInput value={expenseForm.occurredAt} onChange={(value) => setExpenseForm({ ...expenseForm, occurredAt: value })} mode="datetime" placeholder="DD/MM/AAAA HH:mm" /></label>
           <label className="field field-full"><span>Descrição</span><textarea rows={3} value={expenseForm.description} onChange={(event) => setExpenseForm({ ...expenseForm, description: event.target.value })} /></label>
         </div>
         <div className="button-row modal-actions">
           <button className="secondary-button" onClick={() => setExpenseModalOpen(false)} type="button">Cancelar</button>
-          <button className="primary-button" disabled={saving} onClick={() => void saveExpense()} type="button">{saving ? "Salvando..." : editingExpense ? "Atualizar despesa" : "Criar despesa"}</button>
+          <button className="primary-button" disabled={saving} onClick={() => void saveExpense()} type="button">
+            <span className="button-icon" aria-hidden="true">
+              <FinanceIcon kind={editingExpense ? "edit" : "expense"} />
+            </span>
+            {saving ? "Salvando..." : editingExpense ? "Atualizar despesa" : "Criar despesa"}
+          </button>
         </div>
       </Modal>
     </div>

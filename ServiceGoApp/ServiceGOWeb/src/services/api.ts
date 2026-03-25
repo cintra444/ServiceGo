@@ -10,6 +10,9 @@ import type {
   ExpenseRequest,
   LoginRequest,
   LoginResponse,
+  RegisterRequest,
+  RegisterResponse,
+  UserStatusUpdateRequest,
   Payment,
   PaymentRequest,
   RelatorioFinanceiro,
@@ -22,6 +25,15 @@ import type {
 export const authApi = {
   login(payload: LoginRequest) {
     return apiRequest<LoginResponse>("/api/auth/login", { method: "POST", body: payload });
+  },
+  register(payload: RegisterRequest) {
+    return apiRequest<RegisterResponse>("/api/auth/register", { method: "POST", body: payload });
+  },
+  listUsers(token: string) {
+    return apiRequest<RegisterResponse[]>("/api/auth/users", { token });
+  },
+  updateUserStatus(token: string, id: number, payload: UserStatusUpdateRequest) {
+    return apiRequest<RegisterResponse>(`/api/auth/users/${id}/status`, { method: "PUT", token, body: payload });
   },
   mePlan(token: string) {
     return apiRequest<LoginResponse["plan"]>("/api/auth/me/plan", { token });

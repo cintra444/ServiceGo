@@ -9,12 +9,13 @@ const navItems = [
   { to: "/finance", label: "Financeiro", hint: "Receitas e custos", icon: "finance" as const },
   { to: "/schedule", label: "Agenda", hint: "Compromissos", icon: "schedule" as const },
   { to: "/settings", label: "Ajustes", hint: "Conta e plano", icon: "settings" as const },
+  { to: "/users", label: "Usuários", hint: "Gestão global", icon: "users" as const, adminOnly: true },
 ];
 
 function NavIcon({
   kind,
 }: {
-  kind: "dashboard" | "trips" | "customers" | "vehicles" | "finance" | "schedule" | "settings";
+  kind: "dashboard" | "trips" | "customers" | "vehicles" | "finance" | "schedule" | "settings" | "users";
 }) {
   const icons = {
     dashboard: (
@@ -87,6 +88,16 @@ function NavIcon({
         fill="none"
       />
     ),
+    users: (
+      <path
+        d="M8.2 10.4a2.7 2.7 0 1 0 0-5.4 2.7 2.7 0 0 0 0 5.4Zm7.6 1.8a2.2 2.2 0 1 0 0-4.4 2.2 2.2 0 0 0 0 4.4ZM3.8 18.6c0-2.4 2.2-4.2 4.9-4.2s4.9 1.8 4.9 4.2m1.9 0c.2-1.7 1.8-3 3.8-3 2 0 3.6 1.3 3.8 3"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+    ),
   };
 
   return (
@@ -98,11 +109,14 @@ function NavIcon({
 
 export function AppShell() {
   const { session, logout } = useAuth();
+  const isAdmin = session?.role === "ROLE_ADMINISTRADOR" || session?.role === "ADMINISTRADOR";
+  const visibleNavItems = navItems.filter((item) => !item.adminOnly || isAdmin);
 
   return (
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand-panel">
+          <div className="panel-accent" aria-hidden="true" />
           <div className="brand-mark">SG</div>
           <div>
             <h1>ServiceGO Web</h1>
@@ -110,7 +124,7 @@ export function AppShell() {
         </div>
 
         <nav className="nav-menu">
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -128,8 +142,10 @@ export function AppShell() {
         </nav>
 
         <div className="session-card">
+          <div className="panel-accent panel-accent-soft" aria-hidden="true" />
           <span className="eyebrow">Sessão ativa</span>
           <strong>{session?.email ?? "Usuário"}</strong>
+          <span>{isAdmin ? "Administrador" : "Motorista"}</span>
           <span>{session?.plan?.type === "PRO" ? "Plano Pro" : "Plano Free"}</span>
           <button className="secondary-button" onClick={logout} type="button">
             Sair

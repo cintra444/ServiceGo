@@ -46,6 +46,10 @@ async function parsePayload(response: Response) {
 }
 
 function extractApiMessage(payload: unknown): string | null {
+  if (typeof payload === "string" && payload.trim()) {
+    return payload;
+  }
+
   if (!payload || typeof payload !== "object") {
     return null;
   }
@@ -58,6 +62,24 @@ function extractApiMessage(payload: unknown): string | null {
   const maybeError = "error" in payload ? payload.error : null;
   if (typeof maybeError === "string" && maybeError) {
     return maybeError;
+  }
+
+  const maybeDetail = "detail" in payload ? payload.detail : null;
+  if (typeof maybeDetail === "string" && maybeDetail) {
+    return maybeDetail;
+  }
+
+  const maybeTitle = "title" in payload ? payload.title : null;
+  if (typeof maybeTitle === "string" && maybeTitle) {
+    return maybeTitle;
+  }
+
+  const maybeErrors = "errors" in payload ? payload.errors : null;
+  if (Array.isArray(maybeErrors) && maybeErrors.length > 0) {
+    const firstError = maybeErrors.find((item) => typeof item === "string");
+    if (typeof firstError === "string" && firstError) {
+      return firstError;
+    }
   }
 
   return null;

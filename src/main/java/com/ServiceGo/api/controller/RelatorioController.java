@@ -76,6 +76,10 @@ public class RelatorioController {
         BigDecimal custosVariaveis = expenses.stream()
                 .map(expense -> expense.getAmount() == null ? ZERO : expense.getAmount())
                 .reduce(ZERO, BigDecimal::add);
+        BigDecimal pedagios = trips.stream()
+                .map(trip -> trip.getTollAmount() == null ? ZERO : trip.getTollAmount())
+                .reduce(ZERO, BigDecimal::add);
+        custosVariaveis = custosVariaveis.add(pedagios);
 
         ConfiguracaoUsuario config = configuracaoUsuarioRepository.findByUsuarioId(usuarioId).orElse(null);
         BigDecimal depreciacaoPeriodo = calcularDepreciacaoPeriodo(config, kmTotal, inicioPeriodo, fimPeriodo);
@@ -145,6 +149,10 @@ public class RelatorioController {
             return ZERO;
         }
 
+        if (config.getDepreciacaoModo() == DepreciacaoModo.AUTOMATICA) {
+            return depreciacaoUnitaria.multiply(kmTotal);
+        }
+
         return switch (config.getDepreciacaoAlocacao()) {
             case POR_KM -> depreciacaoUnitaria.multiply(kmTotal);
             case MENSAL -> {
@@ -182,13 +190,7 @@ public class RelatorioController {
         }
         BigDecimal depreciacaoTotal = valorAtual.subtract(valorEstimado);
 
-        return switch (alocacao) {
-            case POR_KM -> safeDivide(depreciacaoTotal, config.getKmBaseDepreciacao());
-            case MENSAL -> config.getMesesBaseDepreciacao() == null
-                    ? ZERO
-                    : safeDivide(depreciacaoTotal, new BigDecimal(config.getMesesBaseDepreciacao()));
-            case ANUAL -> safeDivide(depreciacaoTotal, config.getAnosBaseDepreciacao());
-        };
+        return safeDivide(depreciacaoTotal, config.getKmBaseDepreciacao());
     }
 
     private BigDecimal safeDivide(BigDecimal value, BigDecimal divisor) {

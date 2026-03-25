@@ -68,6 +68,7 @@ function DashboardIcon({ kind }: { kind: "trips" | "progress" | "revenue" | "cos
 
 export function DashboardPage() {
   const { session } = useAuth();
+  const isAdmin = session?.role === "ROLE_ADMINISTRADOR" || session?.role === "ADMINISTRADOR";
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<DashboardData>({ trips: [], payments: [], expenses: [] });
@@ -134,7 +135,11 @@ export function DashboardPage() {
     <div className="page-stack">
       <PageHeader
         title="Painel"
-        description={`Visão rápida da operação. Atualizado em ${dateOnly(new Date().toISOString())}.`}
+        description={
+          isAdmin
+            ? `Visão global do sistema. Atualizado em ${dateOnly(new Date().toISOString())}.`
+            : `Visão rápida da sua operação. Atualizado em ${dateOnly(new Date().toISOString())}.`
+        }
       />
 
       {loading ? <DataState message="Carregando indicadores..." /> : null}

@@ -22,6 +22,7 @@ public record TripResponse(
         BigDecimal distanceKm,
         BigDecimal estimatedAmount,
         BigDecimal actualAmount,
+        BigDecimal tollAmount,
         String notes,
         OffsetDateTime createdAt
 ) {

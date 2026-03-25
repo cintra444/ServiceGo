@@ -9,16 +9,23 @@ import com.ServiceGo.domain.entity.Trip;
 import com.ServiceGo.domain.entity.AppUser;
 import com.ServiceGo.domain.entity.Veiculo;
 import com.ServiceGo.domain.enums.StatusAgendamento;
+import com.ServiceGo.domain.enums.DepreciacaoAlocacao;
+import com.ServiceGo.domain.enums.DepreciacaoModo;
 import com.ServiceGo.domain.enums.UserRole;
 import com.ServiceGo.domain.repository.AgendamentoViagemRepository;
 import com.ServiceGo.domain.repository.ConfiguracaoUsuarioRepository;
 import com.ServiceGo.domain.repository.CustomerRepository;
+import com.ServiceGo.domain.repository.ExpenseRepository;
+import com.ServiceGo.domain.repository.PaymentRepository;
 import com.ServiceGo.domain.repository.TripRepository;
 import com.ServiceGo.domain.repository.VeiculoRepository;
+import com.ServiceGo.security.PlanAccessService;
 import jakarta.validation.Valid;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -39,38 +46,50 @@ public class TripController {
     private final VeiculoRepository veiculoRepository;
     private final AgendamentoViagemRepository agendamentoRepository;
     private final ConfiguracaoUsuarioRepository configuracaoUsuarioRepository;
+    private final PaymentRepository paymentRepository;
+    private final ExpenseRepository expenseRepository;
+    private final PlanAccessService planAccessService;
 
     public TripController(
             TripRepository tripRepository,
             CustomerRepository customerRepository,
             VeiculoRepository veiculoRepository,
             AgendamentoViagemRepository agendamentoRepository,
-            ConfiguracaoUsuarioRepository configuracaoUsuarioRepository
+            ConfiguracaoUsuarioRepository configuracaoUsuarioRepository,
+            PaymentRepository paymentRepository,
+            ExpenseRepository expenseRepository,
+            PlanAccessService planAccessService
     ) {
         this.tripRepository = tripRepository;
         this.customerRepository = customerRepository;
         this.veiculoRepository = veiculoRepository;
         this.agendamentoRepository = agendamentoRepository;
         this.configuracaoUsuarioRepository = configuracaoUsuarioRepository;
+        this.paymentRepository = paymentRepository;
+        this.expenseRepository = expenseRepository;
+        this.planAccessService = planAccessService;
     }
 
     @GetMapping
-    public List<TripResponse> list() {
-        return tripRepository.findAll().stream().map(this::toResponse).toList();
+    public List<TripResponse> list(Authentication authentication) {
+        AppUser authenticatedUser = planAccessService.getAuthenticatedUser(authentication);
+        List<Trip> trips = authenticatedUser.getRole() == UserRole.ADMINISTRADOR
+                ? tripRepository.findAll()
+                : tripRepository.findByVeiculoDonoVeiculoIdOrderByStartAtDesc(authenticatedUser.getId());
+        return trips.stream().map(this::toResponse).toList();
     }
 
     @GetMapping("/{id}")
-    public TripResponse getById(@PathVariable Long id) {
-        Trip trip = tripRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Trip not found"));
+    public TripResponse getById(@PathVariable Long id, Authentication authentication) {
+        Trip trip = resolveTrip(id, authentication);
         return toResponse(trip);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public TripResponse create(@Valid @RequestBody TripRequest request) {
+    public TripResponse create(@Valid @RequestBody TripRequest request, Authentication authentication) {
         Trip trip = new Trip();
-        applyRequest(request, trip);
+        applyRequest(request, trip, authentication);
         trip.setCreatedAt(OffsetDateTime.now());
         Trip saved = tripRepository.save(trip);
         sincronizarAgendamentoAutomatico(saved);
@@ -78,10 +97,9 @@ public class TripController {
     }
 
     @PutMapping("/{id}")
-    public TripResponse update(@PathVariable Long id, @Valid @RequestBody TripRequest request) {
-        Trip trip = tripRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Trip not found"));
-        applyRequest(request, trip);
+    public TripResponse update(@PathVariable Long id, @Valid @RequestBody TripRequest request, Authentication authentication) {
+        Trip trip = resolveTrip(id, authentication);
+        applyRequest(request, trip, authentication);
         Trip saved = tripRepository.save(trip);
         sincronizarAgendamentoAutomatico(saved);
         return toResponse(saved);
@@ -89,21 +107,17 @@ public class TripController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
-        if (!tripRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Trip not found");
-        }
-        agendamentoRepository.findByTripId(id).ifPresent(agendamento -> {
-            agendamento.setStatus(StatusAgendamento.CANCELADO);
-            agendamento.setAtualizadoEm(OffsetDateTime.now());
-            agendamentoRepository.save(agendamento);
-        });
-        tripRepository.deleteById(id);
+    public void delete(@PathVariable Long id, Authentication authentication) {
+        Trip trip = resolveTrip(id, authentication);
+        paymentRepository.deleteAll(paymentRepository.findByTripId(id));
+        expenseRepository.deleteAll(expenseRepository.findByTripId(id));
+        agendamentoRepository.findByTripId(id).ifPresent(agendamentoRepository::delete);
+        tripRepository.delete(trip);
     }
 
-    private void applyRequest(TripRequest request, Trip trip) {
-        trip.setCustomer(resolveCustomer(request.customerId()));
-        trip.setVeiculo(resolveVeiculo(request.veiculoId()));
+    private void applyRequest(TripRequest request, Trip trip, Authentication authentication) {
+        trip.setCustomer(resolveCustomer(request.customerId(), authentication));
+        trip.setVeiculo(resolveVeiculo(request.veiculoId(), authentication));
         trip.setTripType(request.tripType());
         trip.setStatus(request.status());
         trip.setOrigin(request.origin());
@@ -114,20 +128,41 @@ public class TripController {
         trip.setDistanceKm(request.distanceKm());
         trip.setEstimatedAmount(request.estimatedAmount());
         trip.setActualAmount(request.actualAmount());
+        trip.setTollAmount(request.tollAmount());
         trip.setNotes(request.notes());
     }
 
-    private Customer resolveCustomer(Long customerId) {
+    private Customer resolveCustomer(Long customerId, Authentication authentication) {
         if (customerId == null) {
             return null;
         }
-        return customerRepository.findById(customerId)
+        AppUser authenticatedUser = planAccessService.getAuthenticatedUser(authentication);
+        if (authenticatedUser.getRole() == UserRole.ADMINISTRADOR) {
+            return customerRepository.findById(customerId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid customerId"));
+        }
+        return customerRepository.findByIdAndOwnerUserId(customerId, authenticatedUser.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid customerId"));
     }
 
-    private Veiculo resolveVeiculo(Long veiculoId) {
-        return veiculoRepository.findById(veiculoId)
+    private Veiculo resolveVeiculo(Long veiculoId, Authentication authentication) {
+        AppUser authenticatedUser = planAccessService.getAuthenticatedUser(authentication);
+        if (authenticatedUser.getRole() == UserRole.ADMINISTRADOR) {
+            return veiculoRepository.findById(veiculoId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid veiculoId"));
+        }
+        return veiculoRepository.findByIdAndDonoVeiculoId(veiculoId, authenticatedUser.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid veiculoId"));
+    }
+
+    private Trip resolveTrip(Long id, Authentication authentication) {
+        AppUser authenticatedUser = planAccessService.getAuthenticatedUser(authentication);
+        if (authenticatedUser.getRole() == UserRole.ADMINISTRADOR) {
+            return tripRepository.findById(id)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Trip not found"));
+        }
+        return tripRepository.findByIdAndVeiculoDonoVeiculoId(id, authenticatedUser.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Trip not found"));
     }
 
     private TripResponse toResponse(Trip trip) {
@@ -153,6 +188,7 @@ public class TripController {
                 trip.getDistanceKm(),
                 trip.getEstimatedAmount(),
                 trip.getActualAmount(),
+                trip.getTollAmount(),
                 trip.getNotes(),
                 trip.getCreatedAt()
         );
@@ -196,6 +232,9 @@ public class TripController {
         config.setLembreteAtivo(true);
         config.setMinutosAntecedenciaLembrete(30);
         config.setFusoHorario("America/Sao_Paulo");
+        config.setDepreciacaoModo(DepreciacaoModo.MANUAL);
+        config.setDepreciacaoAlocacao(DepreciacaoAlocacao.POR_KM);
+        config.setValorManualPorKm(new BigDecimal("0.18"));
         return configuracaoUsuarioRepository.save(config);
     }
 }

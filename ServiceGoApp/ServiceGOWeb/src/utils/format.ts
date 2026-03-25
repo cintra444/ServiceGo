@@ -5,6 +5,23 @@ export function currency(value?: number | null) {
   }).format(Number(value ?? 0));
 }
 
+export function formatCurrencyInput(value: string) {
+  const digits = value.replace(/\D/g, "");
+  if (!digits) {
+    return "";
+  }
+  return currency(Number(digits) / 100);
+}
+
+export function parseCurrencyInput(value: string) {
+  if (!value.trim()) {
+    return undefined;
+  }
+  const normalized = value.replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
+  const parsed = Number(normalized);
+  return Number.isNaN(parsed) ? undefined : parsed;
+}
+
 export function parseNumber(value: string) {
   if (!value.trim()) {
     return undefined;
@@ -20,6 +37,70 @@ export function cleanText(value?: string) {
   }
   const normalized = value.trim();
   return normalized || undefined;
+}
+
+export function maskDateInput(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 2) {
+    return digits;
+  }
+  if (digits.length <= 4) {
+    return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  }
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
+export function maskDateTimeInput(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 12);
+  if (digits.length <= 8) {
+    return maskDateInput(digits);
+  }
+  const datePart = maskDateInput(digits.slice(0, 8));
+  const timeDigits = digits.slice(8);
+  if (timeDigits.length <= 2) {
+    return `${datePart} ${timeDigits}`;
+  }
+  return `${datePart} ${timeDigits.slice(0, 2)}:${timeDigits.slice(2)}`;
+}
+
+export function toNativeDateValue(value: string) {
+  const normalized = value.trim();
+  const match = normalized.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) {
+    return "";
+  }
+  const [, dd, mm, yyyy] = match;
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+export function fromNativeDateValue(value: string) {
+  const normalized = value.trim();
+  const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) {
+    return "";
+  }
+  const [, yyyy, mm, dd] = match;
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+export function toNativeDateTimeValue(value: string) {
+  const normalized = value.trim();
+  const match = normalized.match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})$/);
+  if (!match) {
+    return "";
+  }
+  const [, dd, mm, yyyy, hh, min] = match;
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+}
+
+export function fromNativeDateTimeValue(value: string) {
+  const normalized = value.trim();
+  const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+  if (!match) {
+    return "";
+  }
+  const [, yyyy, mm, dd, hh, min] = match;
+  return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
 }
 
 export function dateOnly(value?: string | null) {

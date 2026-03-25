@@ -121,6 +121,7 @@ export interface Trip {
   distanceKm?: number | null;
   estimatedAmount?: number | null;
   actualAmount?: number | null;
+  tollAmount?: number | null;
   notes?: string | null;
   createdAt?: string;
 }
@@ -138,6 +139,7 @@ export interface TripRequest {
   distanceKm?: number;
   estimatedAmount?: number;
   actualAmount?: number;
+  tollAmount?: number;
   notes?: string;
 }
 

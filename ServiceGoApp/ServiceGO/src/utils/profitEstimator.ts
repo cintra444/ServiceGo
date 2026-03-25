@@ -1,12 +1,25 @@
 import type { ConfiguracaoUsuario, Trip } from "../types/api";
 
 export interface TripProfitEstimate {
+  operationalDistanceKm: number;
   fuelCost: number;
+  tollCost: number;
   depreciationCost: number;
   totalCost: number;
   profit: number;
   profitPerKm: number;
   profitPerHour: number;
+}
+
+function calculateAutomaticDepreciationPerKm(config: ConfiguracaoUsuario | null) {
+  if (!config) {
+    return 0;
+  }
+  const valorAtual = Number(config.valorAtualVeiculo ?? 0);
+  const valorVenda = Number(config.valorEstimadoVeiculo ?? 0);
+  const kmPeriodo = Number(config.kmBaseDepreciacao ?? 0);
+  const depreciacaoTotal = Math.max(0, valorAtual - valorVenda);
+  return depreciacaoTotal > 0 && kmPeriodo > 0 ? depreciacaoTotal / kmPeriodo : 0;
 }
 
 export function calculateDepreciationForTrip(
@@ -28,19 +41,7 @@ export function calculateDepreciationForTrip(
       unitValue = Number(config.valorManualAnual ?? 0);
     }
   } else {
-    const valorAtual = Number(config.valorAtualVeiculo ?? 0);
-    const valorEstimado = Number(config.valorEstimadoVeiculo ?? 0);
-    const depreciacaoTotal = Math.max(0, valorAtual - valorEstimado);
-    if (config.depreciacaoAlocacao === "POR_KM") {
-      const base = Number(config.kmBaseDepreciacao ?? 0);
-      unitValue = base > 0 ? depreciacaoTotal / base : 0;
-    } else if (config.depreciacaoAlocacao === "MENSAL") {
-      const base = Number(config.mesesBaseDepreciacao ?? 0);
-      unitValue = base > 0 ? depreciacaoTotal / base : 0;
-    } else {
-      const base = Number(config.anosBaseDepreciacao ?? 0);
-      unitValue = base > 0 ? depreciacaoTotal / base : 0;
-    }
+    return calculateAutomaticDepreciationPerKm(config) * distanceKm;
   }
 
   if (config.depreciacaoAlocacao === "POR_KM") {
@@ -58,20 +59,25 @@ export function estimateTripProfit(params: {
   fuelPrice: number;
   fuelEfficiencyKmPerLiter: number;
   estimatedMinutes: number;
+  tollCost?: number;
 }): TripProfitEstimate {
   const revenue = Number(params.trip.actualAmount ?? params.trip.estimatedAmount ?? 0);
   const distanceKm = Number(params.trip.distanceKm ?? 0);
+  const operationalDistanceKm = distanceKm > 0 ? distanceKm * 2 : 0;
+  const tollCost = Number(params.tollCost ?? 0);
   const fuelCost =
     params.fuelPrice > 0 && params.fuelEfficiencyKmPerLiter > 0
-      ? (distanceKm / params.fuelEfficiencyKmPerLiter) * params.fuelPrice
+      ? (operationalDistanceKm / params.fuelEfficiencyKmPerLiter) * params.fuelPrice
       : 0;
-  const depreciationCost = calculateDepreciationForTrip(params.config, distanceKm, params.estimatedMinutes);
-  const totalCost = fuelCost + depreciationCost;
+  const depreciationCost = calculateDepreciationForTrip(params.config, operationalDistanceKm, params.estimatedMinutes);
+  const totalCost = fuelCost + depreciationCost + tollCost;
   const profit = revenue - totalCost;
-  const profitPerKm = distanceKm > 0 ? profit / distanceKm : 0;
+  const profitPerKm = operationalDistanceKm > 0 ? profit / operationalDistanceKm : 0;
   const profitPerHour = params.estimatedMinutes > 0 ? profit / (params.estimatedMinutes / 60) : 0;
   return {
+    operationalDistanceKm,
     fuelCost,
+    tollCost,
     depreciationCost,
     totalCost,
     profit,
