@@ -8,7 +8,6 @@ import { useAuth } from "../context/AuthContext";
 import { tripStatusLabels, tripTypeLabels } from "../constants/labels";
 import { configuracaoApi, customersApi, paymentsApi, tripsApi, veiculosApi } from "../services/api";
 import { ApiError } from "../services/apiClient";
-import { getFuelSettings } from "../services/storage";
 import type { ConfiguracaoUsuario, Customer, Trip, TripStatus, TripType, Veiculo } from "../types/api";
 import { downloadCalendarEvent } from "../utils/calendar";
 import { cleanText, currency, dateTime, formatCurrencyInput, parseCurrencyInput, parseNumber, toIsoFromPtBr, toPtBrDateTime } from "../utils/format";
@@ -253,11 +252,15 @@ export function TripsPage() {
       setCustomers(nextCustomers);
       setVehicles(nextVehicles);
       if (session.userId) {
-        setConfig(await configuracaoApi.get(session.token, session.userId));
+        const nextConfig = await configuracaoApi.get(session.token, session.userId);
+        setConfig(nextConfig);
+        setFuelPrice(Number(nextConfig.fuelPrice ?? 0));
+        setFuelEfficiencyKmPerLiter(Number(nextConfig.fuelEfficiencyKmLiter ?? 0));
+      } else {
+        setConfig(null);
+        setFuelPrice(0);
+        setFuelEfficiencyKmPerLiter(0);
       }
-      const fuelSettings = getFuelSettings();
-      setFuelPrice(Number(fuelSettings.fuelPrice ?? 0));
-      setFuelEfficiencyKmPerLiter(Number(fuelSettings.fuelEfficiencyKmPerLiter ?? 0));
     } catch (nextError) {
       setError(nextError instanceof ApiError ? nextError.message : "Falha ao carregar corridas.");
     } finally {
@@ -431,6 +434,11 @@ export function TripsPage() {
       await tripsApi.remove(session.token, trip.id);
       await load();
     } catch (nextError) {
+      if (nextError instanceof ApiError && nextError.status === 404) {
+        await load();
+        setError("Essa corrida já não estava mais disponível. A lista foi atualizada.");
+        return;
+      }
       setError(nextError instanceof ApiError ? nextError.message : "Não foi possível excluir corrida.");
     }
   };

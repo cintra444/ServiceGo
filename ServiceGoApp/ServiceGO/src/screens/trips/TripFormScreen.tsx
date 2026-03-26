@@ -12,7 +12,6 @@ import { tripStatusLabels, tripTypeLabels } from "../../constants/labels";
 import { colors, spacing } from "../../constants/theme";
 import { useAuth } from "../../context/AuthContext";
 import { configuracaoApi, customersApi, tripsApi, veiculosApi } from "../../services/api";
-import { fuelSettingsStorage } from "../../services/storage";
 import { addEventToDeviceCalendar } from "../../utils/calendar";
 import { cleanText, currency, parseNumber } from "../../utils/format";
 import { hasPremiumAccess } from "../../utils/plan";
@@ -93,10 +92,9 @@ export function TripFormScreen({ navigation, route }: Props) {
         if (session.userId) {
           const userConfig = await configuracaoApi.get(session.token, session.userId);
           setConfig(userConfig);
+          setFuelPrice(Number(userConfig.fuelPrice ?? 0));
+          setFuelEfficiencyKmPerLiter(Number(userConfig.fuelEfficiencyKmLiter ?? 0));
         }
-        const fuelSettings = await fuelSettingsStorage.get();
-        setFuelPrice(Number(fuelSettings.fuelPrice ?? 0));
-        setFuelEfficiencyKmPerLiter(Number(fuelSettings.fuelEfficiencyKmPerLiter ?? 0));
       } catch {
         Alert.alert("Corrida", "Não foi possível carregar dados da calculadora.");
       }
@@ -213,6 +211,7 @@ export function TripFormScreen({ navigation, route }: Props) {
     fuelPrice,
     origin,
     status,
+    tollAmount,
     tripType,
     veiculoId,
   ]);

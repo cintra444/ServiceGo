@@ -71,6 +71,12 @@ public class ConfiguracaoUsuario {
     @Column(name = "valor_manual_anual", precision = 12, scale = 2)
     private BigDecimal valorManualAnual;
 
+    @Column(name = "fuel_price", precision = 12, scale = 2)
+    private BigDecimal fuelPrice;
+
+    @Column(name = "fuel_efficiency_km_liter", precision = 12, scale = 4)
+    private BigDecimal fuelEfficiencyKmLiter;
+
     public Long getId() {
         return id;
     }
@@ -197,5 +203,21 @@ public class ConfiguracaoUsuario {
 
     public void setValorManualAnual(BigDecimal valorManualAnual) {
         this.valorManualAnual = valorManualAnual;
+    }
+
+    public BigDecimal getFuelPrice() {
+        return fuelPrice;
+    }
+
+    public void setFuelPrice(BigDecimal fuelPrice) {
+        this.fuelPrice = fuelPrice;
+    }
+
+    public BigDecimal getFuelEfficiencyKmLiter() {
+        return fuelEfficiencyKmLiter;
+    }
+
+    public void setFuelEfficiencyKmLiter(BigDecimal fuelEfficiencyKmLiter) {
+        this.fuelEfficiencyKmLiter = fuelEfficiencyKmLiter;
     }
 }

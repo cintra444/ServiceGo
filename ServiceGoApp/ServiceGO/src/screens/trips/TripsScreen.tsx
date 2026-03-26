@@ -13,6 +13,7 @@ import { colors, spacing } from "../../constants/theme";
 import { tripStatusLabels, tripTypeLabels } from "../../constants/labels";
 import { tripsApi } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
+import { ApiError } from "../../services/apiClient";
 import { currency, dateTime } from "../../utils/format";
 import type { TripsStackParamList } from "../../navigation/types";
 import type { Trip } from "../../types/api";
@@ -62,7 +63,12 @@ export function TripsScreen() {
     try {
       await tripsApi.remove(session.token, id);
       await load();
-    } catch {
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        await load();
+        Alert.alert("Corridas", "Essa corrida já não estava mais disponível e a lista foi atualizada.");
+        return;
+      }
       Alert.alert("Corridas", "Não foi possível excluir.");
     }
   };

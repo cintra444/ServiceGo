@@ -22,6 +22,9 @@ public interface TripRepository extends JpaRepository<Trip, Long> {
     @EntityGraph(attributePaths = {"customer", "veiculo", "veiculo.donoVeiculo"})
     Optional<Trip> findByIdAndVeiculoDonoVeiculoId(Long id, Long usuarioId);
 
+    @EntityGraph(attributePaths = {"customer", "veiculo", "veiculo.donoVeiculo"})
+    List<Trip> findByVeiculoId(Long veiculoId);
+
     List<Trip> findByVeiculoDonoVeiculoIdAndStartAtBetween(Long usuarioId, OffsetDateTime inicio, OffsetDateTime fim);
 
     List<Trip> findByVeiculoDonoVeiculoIdAndVeiculoIdAndStartAtBetween(

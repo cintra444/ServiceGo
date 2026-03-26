@@ -24,6 +24,8 @@ public record ConfiguracaoUsuarioRequest(
         @DecimalMin(value = "0.0", inclusive = false) BigDecimal anosBaseDepreciacao,
         @DecimalMin(value = "0.0", inclusive = false) BigDecimal valorManualPorKm,
         @DecimalMin(value = "0.0", inclusive = false) BigDecimal valorManualMensal,
-        @DecimalMin(value = "0.0", inclusive = false) BigDecimal valorManualAnual
+        @DecimalMin(value = "0.0", inclusive = false) BigDecimal valorManualAnual,
+        @DecimalMin(value = "0.0", inclusive = false) BigDecimal fuelPrice,
+        @DecimalMin(value = "0.0", inclusive = false) BigDecimal fuelEfficiencyKmLiter
 ) {
 }

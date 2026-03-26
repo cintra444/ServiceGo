@@ -251,6 +251,8 @@ export interface ConfiguracaoUsuario {
   valorManualPorKm?: number | null;
   valorManualMensal?: number | null;
   valorManualAnual?: number | null;
+  fuelPrice?: number | null;
+  fuelEfficiencyKmLiter?: number | null;
 }
 
 export interface ConfiguracaoUsuarioRequest {
@@ -268,6 +270,8 @@ export interface ConfiguracaoUsuarioRequest {
   valorManualPorKm?: number;
   valorManualMensal?: number;
   valorManualAnual?: number;
+  fuelPrice?: number;
+  fuelEfficiencyKmLiter?: number;
 }
 
 export interface RelatorioFinanceiro {

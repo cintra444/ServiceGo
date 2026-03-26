@@ -44,7 +44,7 @@ const resolveApiBaseUrl = () => {
   return "http://localhost:8080";
 };
 
-const API_BASE_URL = resolveApiBaseUrl();
+export const API_BASE_URL = resolveApiBaseUrl();
 console.log("[ServiceGO][API] Base URL:", API_BASE_URL);
 console.log("[ServiceGO][API] Env hints:", {
   EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL ?? null,

@@ -5,9 +5,14 @@ import com.ServiceGo.api.dto.veiculo.DepreciacaoKmResponse;
 import com.ServiceGo.api.dto.veiculo.VeiculoRequest;
 import com.ServiceGo.api.dto.veiculo.VeiculoResponse;
 import com.ServiceGo.domain.entity.AppUser;
+import com.ServiceGo.domain.entity.Trip;
 import com.ServiceGo.domain.entity.Veiculo;
 import com.ServiceGo.domain.enums.UserRole;
+import com.ServiceGo.domain.repository.AgendamentoViagemRepository;
 import com.ServiceGo.domain.repository.AppUserRepository;
+import com.ServiceGo.domain.repository.ExpenseRepository;
+import com.ServiceGo.domain.repository.PaymentRepository;
+import com.ServiceGo.domain.repository.TripRepository;
 import com.ServiceGo.domain.repository.VeiculoRepository;
 import com.ServiceGo.security.PlanAccessService;
 import jakarta.validation.Valid;
@@ -34,15 +39,27 @@ public class VeiculoController {
 
     private final VeiculoRepository veiculoRepository;
     private final AppUserRepository appUserRepository;
+    private final TripRepository tripRepository;
+    private final PaymentRepository paymentRepository;
+    private final ExpenseRepository expenseRepository;
+    private final AgendamentoViagemRepository agendamentoRepository;
     private final PlanAccessService planAccessService;
 
     public VeiculoController(
             VeiculoRepository veiculoRepository,
             AppUserRepository appUserRepository,
+            TripRepository tripRepository,
+            PaymentRepository paymentRepository,
+            ExpenseRepository expenseRepository,
+            AgendamentoViagemRepository agendamentoRepository,
             PlanAccessService planAccessService
     ) {
         this.veiculoRepository = veiculoRepository;
         this.appUserRepository = appUserRepository;
+        this.tripRepository = tripRepository;
+        this.paymentRepository = paymentRepository;
+        this.expenseRepository = expenseRepository;
+        this.agendamentoRepository = agendamentoRepository;
         this.planAccessService = planAccessService;
     }
 
@@ -91,6 +108,12 @@ public class VeiculoController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id, Authentication authentication) {
         Veiculo veiculo = resolveVeiculo(id, authentication);
+        expenseRepository.deleteAll(expenseRepository.findByVeiculoId(id));
+        for (Trip trip : tripRepository.findByVeiculoId(id)) {
+            paymentRepository.deleteAll(paymentRepository.findByTripId(trip.getId()));
+            agendamentoRepository.findByTripId(trip.getId()).ifPresent(agendamentoRepository::delete);
+            tripRepository.delete(trip);
+        }
         veiculoRepository.delete(veiculo);
     }
 

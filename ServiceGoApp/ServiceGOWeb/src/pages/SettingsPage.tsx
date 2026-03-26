@@ -6,7 +6,6 @@ import { useAuth } from "../context/AuthContext";
 import { depreciacaoAlocacaoLabels } from "../constants/labels";
 import { authApi, configuracaoApi } from "../services/api";
 import { ApiError } from "../services/apiClient";
-import { getFuelSettings, setFuelSettings } from "../services/storage";
 import type { ConfiguracaoUsuario, DepreciacaoAlocacao, DepreciacaoModo } from "../types/api";
 import { currency, dateOnly, parseNumber } from "../utils/format";
 import { hasPremiumAccess } from "../utils/plan";
@@ -211,6 +210,8 @@ export function SettingsPage() {
     setValorManualPorKm(nextConfig.valorManualPorKm == null ? "" : String(nextConfig.valorManualPorKm));
     setValorManualMensal(nextConfig.valorManualMensal == null ? "" : String(nextConfig.valorManualMensal));
     setValorManualAnual(nextConfig.valorManualAnual == null ? "" : String(nextConfig.valorManualAnual));
+    setFuelPrice(nextConfig.fuelPrice == null ? "" : String(nextConfig.fuelPrice));
+    setFuelEfficiency(nextConfig.fuelEfficiencyKmLiter == null ? "" : String(nextConfig.fuelEfficiencyKmLiter));
   };
 
   useEffect(() => {
@@ -223,9 +224,6 @@ export function SettingsPage() {
         setLoading(true);
         setError(null);
         applyConfig(await configuracaoApi.get(session.token, session.userId));
-        const fuel = getFuelSettings();
-        setFuelPrice(fuel.fuelPrice == null ? "" : String(fuel.fuelPrice));
-        setFuelEfficiency(fuel.fuelEfficiencyKmPerLiter == null ? "" : String(fuel.fuelEfficiencyKmPerLiter));
       } catch (nextError) {
         setError(nextError instanceof ApiError ? nextError.message : "Falha ao carregar ajustes.");
       } finally {
@@ -323,6 +321,8 @@ export function SettingsPage() {
             ...(isAnual ? { valorManualAnual: parseNumber(valorManualAnual) } : {}),
           }
         : {}),
+      fuelPrice: parseNumber(fuelPrice),
+      fuelEfficiencyKmLiter: parseNumber(fuelEfficiency),
     };
 
     try {
@@ -330,10 +330,6 @@ export function SettingsPage() {
       setError(null);
       const updated = await configuracaoApi.update(session.token, session.userId, payload);
       applyConfig(updated);
-      setFuelSettings({
-        fuelPrice: parseNumber(fuelPrice),
-        fuelEfficiencyKmPerLiter: parseNumber(fuelEfficiency),
-      });
     } catch (nextError) {
       setError(nextError instanceof ApiError ? nextError.message : "Não foi possível salvar configurações.");
     } finally {

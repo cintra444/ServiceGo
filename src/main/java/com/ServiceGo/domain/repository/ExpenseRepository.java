@@ -25,6 +25,9 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     @EntityGraph(attributePaths = {"trip", "veiculo"})
     List<Expense> findByTripId(Long tripId);
 
+    @EntityGraph(attributePaths = {"trip", "veiculo"})
+    List<Expense> findByVeiculoId(Long veiculoId);
+
     List<Expense> findByVeiculoDonoVeiculoIdAndOccurredAtBetween(Long usuarioId, OffsetDateTime inicio, OffsetDateTime fim);
 
     List<Expense> findByVeiculoDonoVeiculoIdAndVeiculoIdAndOccurredAtBetween(

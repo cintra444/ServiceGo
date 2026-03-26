@@ -7,7 +7,6 @@ import { SGCard } from "../../components/ui/SGCard";
 import { SGButton } from "../../components/ui/SGButton";
 import { colors, spacing } from "../../constants/theme";
 import { configuracaoApi, expensesApi, paymentsApi, tripsApi } from "../../services/api";
-import { fuelSettingsStorage } from "../../services/storage";
 import { useAuth } from "../../context/AuthContext";
 import { currency, dateOnly } from "../../utils/format";
 import { hasPremiumAccess } from "../../utils/plan";
@@ -57,11 +56,12 @@ export function DashboardScreen() {
         paymentsApi.list(session.token),
         expensesApi.list(session.token),
       ]);
-      const fuelSettings = await fuelSettingsStorage.get();
       let config: ConfiguracaoUsuario | null = null;
       if (session.userId) {
         config = await configuracaoApi.get(session.token, session.userId);
       }
+      const fuelPrice = Number(config?.fuelPrice ?? 0);
+      const fuelEfficiencyKmPerLiter = Number(config?.fuelEfficiencyKmLiter ?? 0);
       const today = new Date().toISOString().slice(0, 10);
       const month = new Date().getMonth();
       const year = new Date().getFullYear();
@@ -86,10 +86,10 @@ export function DashboardScreen() {
       const projections = buildProjections(
         trips,
         config,
-        Number(fuelSettings.fuelPrice ?? 0),
-        Number(fuelSettings.fuelEfficiencyKmPerLiter ?? 0),
+        fuelPrice,
+        fuelEfficiencyKmPerLiter,
       );
-      const insights = buildInsights(trips, config, Number(fuelSettings.fuelPrice ?? 0), Number(fuelSettings.fuelEfficiencyKmPerLiter ?? 0));
+      const insights = buildInsights(trips, config, fuelPrice, fuelEfficiencyKmPerLiter);
       setData({
         corridasHoje,
         corridasEmAndamento,

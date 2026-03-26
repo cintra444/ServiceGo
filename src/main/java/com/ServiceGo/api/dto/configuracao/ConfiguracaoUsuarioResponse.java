@@ -20,6 +20,8 @@ public record ConfiguracaoUsuarioResponse(
         BigDecimal anosBaseDepreciacao,
         BigDecimal valorManualPorKm,
         BigDecimal valorManualMensal,
-        BigDecimal valorManualAnual
+        BigDecimal valorManualAnual,
+        BigDecimal fuelPrice,
+        BigDecimal fuelEfficiencyKmLiter
 ) {
 }

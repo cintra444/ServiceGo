@@ -11,7 +11,6 @@ import { SGButton } from "../../components/ui/SGButton";
 import { ChipSelect } from "../../components/ui/ChipSelect";
 import { useAuth } from "../../context/AuthContext";
 import { authApi, configuracaoApi } from "../../services/api";
-import { fuelSettingsStorage } from "../../services/storage";
 import { colors } from "../../constants/theme";
 import { depreciacaoAlocacaoLabels, depreciacaoModoLabels } from "../../constants/labels";
 import { dateOnly, parseNumber } from "../../utils/format";
@@ -86,6 +85,8 @@ export function SettingsScreen() {
     valorManualPorKm?: number | null;
     valorManualMensal?: number | null;
     valorManualAnual?: number | null;
+    fuelPrice?: number | null;
+    fuelEfficiencyKmLiter?: number | null;
   }) => {
     setSincronizarCalendario(String(config.sincronizarCalendario));
     setLembreteAtivo(String(config.lembreteAtivo));
@@ -101,6 +102,8 @@ export function SettingsScreen() {
     setValorManualPorKm(config.valorManualPorKm == null ? "" : String(config.valorManualPorKm));
     setValorManualMensal(config.valorManualMensal == null ? "" : String(config.valorManualMensal));
     setValorManualAnual(config.valorManualAnual == null ? "" : String(config.valorManualAnual));
+    setFuelPrice(config.fuelPrice == null ? "" : String(config.fuelPrice));
+    setFuelEfficiency(config.fuelEfficiencyKmLiter == null ? "" : String(config.fuelEfficiencyKmLiter));
   };
 
   const usuarioIdValue = session?.userId;
@@ -142,15 +145,6 @@ export function SettingsScreen() {
     };
     loadInitialConfig();
   }, [session?.token, usuarioIdValue]);
-
-  useEffect(() => {
-    const loadFuelSettings = async () => {
-      const settings = await fuelSettingsStorage.get();
-      setFuelPrice(settings.fuelPrice == null ? "" : String(settings.fuelPrice));
-      setFuelEfficiency(settings.fuelEfficiencyKmPerLiter == null ? "" : String(settings.fuelEfficiencyKmPerLiter));
-    };
-    loadFuelSettings();
-  }, []);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -260,15 +254,13 @@ export function SettingsScreen() {
             ...(isAnual ? { valorManualAnual: manualAnual } : {}),
           }
         : {}),
+      fuelPrice: fuelPriceValue,
+      fuelEfficiencyKmLiter: fuelEfficiencyValue,
     };
 
     try {
       setSavingConfig(true);
       const updated = await configuracaoApi.update(session.token, usuarioIdValue, payload);
-      await fuelSettingsStorage.save({
-        fuelPrice: fuelPriceValue,
-        fuelEfficiencyKmPerLiter: fuelEfficiencyValue,
-      });
       setConfigValues(updated);
       Alert.alert("Configuração", "Configuração salva.");
     } catch {
@@ -486,7 +478,7 @@ export function SettingsScreen() {
           keyboardType="decimal-pad"
           placeholder="Ex: 11,5"
         />
-        <Text style={styles.hint}>Esses valores são salvos no app e usados para estimar lucro por corrida.</Text>
+        <Text style={styles.hint}>Esses valores são salvos na sua conta e sincronizados entre app e web.</Text>
         <SGButton
           label="Salvar configurações"
           onPress={onSaveConfig}

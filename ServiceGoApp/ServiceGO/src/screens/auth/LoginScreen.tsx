@@ -6,7 +6,7 @@ import { SGInput } from "../../components/ui/SGInput";
 import { SGButton } from "../../components/ui/SGButton";
 import { colors, spacing } from "../../constants/theme";
 import { useAuth } from "../../context/AuthContext";
-import { ApiError } from "../../services/apiClient";
+import { API_BASE_URL, ApiError } from "../../services/apiClient";
 import serviceGoLogo from "../../assets/ServiceGO.png";
 
 export function LoginScreen() {
@@ -57,7 +57,10 @@ export function LoginScreen() {
           />
           <SGButton label="Entrar" onPress={onSubmit} loading={loading} />
           <Text style={styles.hint}>
-            Dica: para emulador Android, o app usa `http://10.0.2.2:8080` como backend.
+            API atual: {API_BASE_URL}
+          </Text>
+          <Text style={styles.hint}>
+            Dica: se estiver no celular, backend e aparelho precisam estar na mesma rede Wi-Fi.
           </Text>
         </SGCard>
       </View>
