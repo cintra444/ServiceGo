@@ -12,10 +12,10 @@ import { ChipSelect } from "../../components/ui/ChipSelect";
 import { useAuth } from "../../context/AuthContext";
 import { authApi, configuracaoApi } from "../../services/api";
 import { colors } from "../../constants/theme";
-import { depreciacaoAlocacaoLabels, depreciacaoModoLabels } from "../../constants/labels";
+import { depreciacaoAlocacaoLabels, depreciacaoModoLabels, fuelTypeLabels } from "../../constants/labels";
 import { dateOnly, parseNumber } from "../../utils/format";
 import { hasPremiumAccess } from "../../utils/plan";
-import type { ConfiguracaoUsuarioRequest, DepreciacaoAlocacao, DepreciacaoModo } from "../../types/api";
+import type { ConfiguracaoUsuarioRequest, DepreciacaoAlocacao, DepreciacaoModo, FuelType } from "../../types/api";
 import type { SettingsStackParamList } from "../../navigation/types";
 
 const automaticPeriodOptions = [
@@ -42,6 +42,7 @@ export function SettingsScreen() {
   const [valorManualPorKm, setValorManualPorKm] = useState("");
   const [valorManualMensal, setValorManualMensal] = useState("");
   const [valorManualAnual, setValorManualAnual] = useState("");
+  const [fuelType, setFuelType] = useState<string>("");
   const [fuelPrice, setFuelPrice] = useState("");
   const [fuelEfficiency, setFuelEfficiency] = useState("");
   const [loadingConfig, setLoadingConfig] = useState(false);
@@ -85,6 +86,7 @@ export function SettingsScreen() {
     valorManualPorKm?: number | null;
     valorManualMensal?: number | null;
     valorManualAnual?: number | null;
+    fuelType?: FuelType | null;
     fuelPrice?: number | null;
     fuelEfficiencyKmLiter?: number | null;
   }) => {
@@ -102,6 +104,7 @@ export function SettingsScreen() {
     setValorManualPorKm(config.valorManualPorKm == null ? "" : String(config.valorManualPorKm));
     setValorManualMensal(config.valorManualMensal == null ? "" : String(config.valorManualMensal));
     setValorManualAnual(config.valorManualAnual == null ? "" : String(config.valorManualAnual));
+    setFuelType(config.fuelType ?? "");
     setFuelPrice(config.fuelPrice == null ? "" : String(config.fuelPrice));
     setFuelEfficiency(config.fuelEfficiencyKmLiter == null ? "" : String(config.fuelEfficiencyKmLiter));
   };
@@ -254,6 +257,7 @@ export function SettingsScreen() {
             ...(isAnual ? { valorManualAnual: manualAnual } : {}),
           }
         : {}),
+      fuelType: fuelType ? (fuelType as FuelType) : undefined,
       fuelPrice: fuelPriceValue,
       fuelEfficiencyKmLiter: fuelEfficiencyValue,
     };
@@ -464,6 +468,15 @@ export function SettingsScreen() {
       </SGCard>
 
       <SGCard title="Combustível" subtitle="Usado na estimativa de lucro da corrida">
+        <ChipSelect
+          label="Combustível padrão"
+          value={fuelType}
+          onChange={setFuelType}
+          options={[
+            { value: "", label: "Não definir" },
+            ...Object.entries(fuelTypeLabels).map(([value, label]) => ({ value, label })),
+          ]}
+        />
         <SGInput
           label="Preço do combustível"
           value={fuelPrice}
@@ -478,7 +491,7 @@ export function SettingsScreen() {
           keyboardType="decimal-pad"
           placeholder="Ex: 11,5"
         />
-        <Text style={styles.hint}>Esses valores são salvos na sua conta e sincronizados entre app e web.</Text>
+        <Text style={styles.hint}>Esses valores viram o padrão da conta e podem ser sobrescritos em cada corrida.</Text>
         <SGButton
           label="Salvar configurações"
           onPress={onSaveConfig}

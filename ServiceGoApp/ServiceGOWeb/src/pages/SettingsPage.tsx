@@ -3,10 +3,10 @@ import { DataState } from "../components/DataState";
 import { PageHeader } from "../components/PageHeader";
 import { Panel } from "../components/Panel";
 import { useAuth } from "../context/AuthContext";
-import { depreciacaoAlocacaoLabels } from "../constants/labels";
+import { depreciacaoAlocacaoLabels, fuelTypeLabels } from "../constants/labels";
 import { authApi, configuracaoApi } from "../services/api";
 import { ApiError } from "../services/apiClient";
-import type { ConfiguracaoUsuario, DepreciacaoAlocacao, DepreciacaoModo } from "../types/api";
+import type { ConfiguracaoUsuario, DepreciacaoAlocacao, DepreciacaoModo, FuelType } from "../types/api";
 import { currency, dateOnly, parseNumber } from "../utils/format";
 import { hasPremiumAccess } from "../utils/plan";
 
@@ -155,6 +155,7 @@ export function SettingsPage() {
   const [valorManualPorKm, setValorManualPorKm] = useState("");
   const [valorManualMensal, setValorManualMensal] = useState("");
   const [valorManualAnual, setValorManualAnual] = useState("");
+  const [fuelType, setFuelType] = useState("");
   const [fuelPrice, setFuelPrice] = useState("");
   const [fuelEfficiency, setFuelEfficiency] = useState("");
 
@@ -210,6 +211,7 @@ export function SettingsPage() {
     setValorManualPorKm(nextConfig.valorManualPorKm == null ? "" : String(nextConfig.valorManualPorKm));
     setValorManualMensal(nextConfig.valorManualMensal == null ? "" : String(nextConfig.valorManualMensal));
     setValorManualAnual(nextConfig.valorManualAnual == null ? "" : String(nextConfig.valorManualAnual));
+    setFuelType(nextConfig.fuelType ?? "");
     setFuelPrice(nextConfig.fuelPrice == null ? "" : String(nextConfig.fuelPrice));
     setFuelEfficiency(nextConfig.fuelEfficiencyKmLiter == null ? "" : String(nextConfig.fuelEfficiencyKmLiter));
   };
@@ -321,6 +323,7 @@ export function SettingsPage() {
             ...(isAnual ? { valorManualAnual: parseNumber(valorManualAnual) } : {}),
           }
         : {}),
+      fuelType: fuelType ? (fuelType as FuelType) : undefined,
       fuelPrice: parseNumber(fuelPrice),
       fuelEfficiencyKmLiter: parseNumber(fuelEfficiency),
     };
@@ -488,6 +491,17 @@ export function SettingsPage() {
                   ) : null}
                 </>
               )}
+              <label className="field">
+                <span>Combustível padrão</span>
+                <select value={fuelType} onChange={(event) => setFuelType(event.target.value)}>
+                  <option value="">Não definir</option>
+                  {Object.entries(fuelTypeLabels).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <label className="field"><span>Preço do combustível</span><input value={fuelPrice} onChange={(event) => setFuelPrice(event.target.value)} /></label>
               <label className="field"><span>Consumo médio (km/l)</span><input value={fuelEfficiency} onChange={(event) => setFuelEfficiency(event.target.value)} /></label>
             </div>

@@ -56,8 +56,6 @@ export function calculateDepreciationForTrip(
 export function estimateTripProfit(params: {
   trip: Trip;
   config: ConfiguracaoUsuario | null;
-  fuelPrice: number;
-  fuelEfficiencyKmPerLiter: number;
   estimatedMinutes: number;
   tollCost?: number;
 }): TripProfitEstimate {
@@ -65,9 +63,11 @@ export function estimateTripProfit(params: {
   const distanceKm = Number(params.trip.distanceKm ?? 0);
   const operationalDistanceKm = distanceKm > 0 ? distanceKm * 2 : 0;
   const tollCost = Number(params.tollCost ?? 0);
+  const fuelPrice = Number(params.trip.fuelPrice ?? params.config?.fuelPrice ?? 0);
+  const fuelEfficiencyKmPerLiter = Number(params.trip.fuelEfficiencyKmLiter ?? params.config?.fuelEfficiencyKmLiter ?? 0);
   const fuelCost =
-    params.fuelPrice > 0 && params.fuelEfficiencyKmPerLiter > 0
-      ? (operationalDistanceKm / params.fuelEfficiencyKmPerLiter) * params.fuelPrice
+    fuelPrice > 0 && fuelEfficiencyKmPerLiter > 0
+      ? (operationalDistanceKm / fuelEfficiencyKmPerLiter) * fuelPrice
       : 0;
   const depreciationCost = calculateDepreciationForTrip(params.config, operationalDistanceKm, params.estimatedMinutes);
   const totalCost = fuelCost + depreciationCost + tollCost;

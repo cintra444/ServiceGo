@@ -2,6 +2,7 @@ package com.ServiceGo.domain.entity;
 
 import com.ServiceGo.domain.enums.DepreciacaoAlocacao;
 import com.ServiceGo.domain.enums.DepreciacaoModo;
+import com.ServiceGo.domain.enums.FuelType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -76,6 +77,10 @@ public class ConfiguracaoUsuario {
 
     @Column(name = "fuel_efficiency_km_liter", precision = 12, scale = 4)
     private BigDecimal fuelEfficiencyKmLiter;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "fuel_type", length = 20)
+    private FuelType fuelType;
 
     public Long getId() {
         return id;
@@ -219,5 +224,13 @@ public class ConfiguracaoUsuario {
 
     public void setFuelEfficiencyKmLiter(BigDecimal fuelEfficiencyKmLiter) {
         this.fuelEfficiencyKmLiter = fuelEfficiencyKmLiter;
+    }
+
+    public FuelType getFuelType() {
+        return fuelType;
+    }
+
+    public void setFuelType(FuelType fuelType) {
+        this.fuelType = fuelType;
     }
 }

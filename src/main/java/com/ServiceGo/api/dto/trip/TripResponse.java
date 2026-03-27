@@ -1,5 +1,6 @@
 package com.ServiceGo.api.dto.trip;
 
+import com.ServiceGo.domain.enums.FuelType;
 import com.ServiceGo.domain.enums.TripStatus;
 import com.ServiceGo.domain.enums.TripType;
 import java.math.BigDecimal;
@@ -23,6 +24,9 @@ public record TripResponse(
         BigDecimal estimatedAmount,
         BigDecimal actualAmount,
         BigDecimal tollAmount,
+        FuelType fuelType,
+        BigDecimal fuelPrice,
+        BigDecimal fuelEfficiencyKmLiter,
         String notes,
         OffsetDateTime createdAt
 ) {

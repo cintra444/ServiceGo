@@ -2,6 +2,7 @@ package com.ServiceGo.api.dto.configuracao;
 
 import com.ServiceGo.domain.enums.DepreciacaoAlocacao;
 import com.ServiceGo.domain.enums.DepreciacaoModo;
+import com.ServiceGo.domain.enums.FuelType;
 import java.math.BigDecimal;
 
 public record ConfiguracaoUsuarioResponse(
@@ -21,6 +22,7 @@ public record ConfiguracaoUsuarioResponse(
         BigDecimal valorManualPorKm,
         BigDecimal valorManualMensal,
         BigDecimal valorManualAnual,
+        FuelType fuelType,
         BigDecimal fuelPrice,
         BigDecimal fuelEfficiencyKmLiter
 ) {

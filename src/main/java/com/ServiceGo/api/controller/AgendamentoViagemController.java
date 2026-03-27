@@ -4,13 +4,18 @@ import com.ServiceGo.api.dto.agendamento.AgendamentoViagemRequest;
 import com.ServiceGo.api.dto.agendamento.AgendamentoViagemResponse;
 import com.ServiceGo.domain.entity.AgendamentoViagem;
 import com.ServiceGo.domain.entity.AppUser;
+import com.ServiceGo.domain.entity.Expense;
 import com.ServiceGo.domain.entity.Trip;
+import com.ServiceGo.domain.enums.ExpenseCategory;
+import com.ServiceGo.domain.enums.StatusAgendamento;
 import com.ServiceGo.domain.enums.UserRole;
 import com.ServiceGo.domain.repository.AgendamentoViagemRepository;
 import com.ServiceGo.domain.repository.AppUserRepository;
+import com.ServiceGo.domain.repository.ExpenseRepository;
 import com.ServiceGo.domain.repository.TripRepository;
 import com.ServiceGo.security.PlanAccessService;
 import jakarta.validation.Valid;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -33,17 +38,20 @@ public class AgendamentoViagemController {
     private final AgendamentoViagemRepository agendamentoRepository;
     private final TripRepository tripRepository;
     private final AppUserRepository appUserRepository;
+    private final ExpenseRepository expenseRepository;
     private final PlanAccessService planAccessService;
 
     public AgendamentoViagemController(
             AgendamentoViagemRepository agendamentoRepository,
             TripRepository tripRepository,
             AppUserRepository appUserRepository,
+            ExpenseRepository expenseRepository,
             PlanAccessService planAccessService
     ) {
         this.agendamentoRepository = agendamentoRepository;
         this.tripRepository = tripRepository;
         this.appUserRepository = appUserRepository;
+        this.expenseRepository = expenseRepository;
         this.planAccessService = planAccessService;
     }
 
@@ -76,7 +84,9 @@ public class AgendamentoViagemController {
         OffsetDateTime now = OffsetDateTime.now();
         agendamento.setCriadoEm(now);
         agendamento.setAtualizadoEm(now);
-        return toResponse(agendamentoRepository.save(agendamento));
+        AgendamentoViagem saved = agendamentoRepository.save(agendamento);
+        sincronizarDespesaPedagio(saved);
+        return toResponse(saved);
     }
 
     @PutMapping("/{id}")
@@ -84,7 +94,9 @@ public class AgendamentoViagemController {
         AgendamentoViagem agendamento = resolveAgendamento(id, authentication);
         applyRequest(request, agendamento, authentication);
         agendamento.setAtualizadoEm(OffsetDateTime.now());
-        return toResponse(agendamentoRepository.save(agendamento));
+        AgendamentoViagem saved = agendamentoRepository.save(agendamento);
+        sincronizarDespesaPedagio(saved);
+        return toResponse(saved);
     }
 
     @DeleteMapping("/{id}")
@@ -134,6 +146,44 @@ public class AgendamentoViagemController {
         }
         return agendamentoRepository.findByIdAndUsuarioId(id, authenticatedUser.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Agendamento nao encontrado"));
+    }
+
+    private void sincronizarDespesaPedagio(AgendamentoViagem agendamento) {
+        if (agendamento.getStatus() != StatusAgendamento.CONCLUIDO || agendamento.getTrip() == null) {
+            return;
+        }
+
+        Trip trip = agendamento.getTrip();
+        BigDecimal tollAmount = trip.getTollAmount();
+        if (tollAmount == null || tollAmount.compareTo(BigDecimal.ZERO) <= 0 || trip.getVeiculo() == null) {
+            return;
+        }
+
+        Expense expense = expenseRepository.findByTripId(trip.getId()).stream()
+                .filter(existingExpense -> existingExpense.getCategory() == ExpenseCategory.PEDAGIO)
+                .findFirst()
+                .orElseGet(Expense::new);
+
+        expense.setTrip(trip);
+        expense.setVeiculo(trip.getVeiculo());
+        expense.setCategory(ExpenseCategory.PEDAGIO);
+        expense.setAmount(tollAmount);
+        expense.setDescription("Pedagio gerado automaticamente ao concluir agendamento");
+        expense.setOccurredAt(resolveOccurredAt(agendamento, trip));
+        expenseRepository.save(expense);
+    }
+
+    private OffsetDateTime resolveOccurredAt(AgendamentoViagem agendamento, Trip trip) {
+        if (trip.getEndAt() != null) {
+            return trip.getEndAt();
+        }
+        if (agendamento.getFimEm() != null) {
+            return agendamento.getFimEm();
+        }
+        if (agendamento.getInicioEm() != null) {
+            return agendamento.getInicioEm();
+        }
+        return OffsetDateTime.now();
     }
 
     private AgendamentoViagemResponse toResponse(AgendamentoViagem agendamento) {

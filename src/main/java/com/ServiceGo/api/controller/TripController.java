@@ -129,6 +129,9 @@ public class TripController {
         trip.setEstimatedAmount(request.estimatedAmount());
         trip.setActualAmount(request.actualAmount());
         trip.setTollAmount(request.tollAmount());
+        trip.setFuelType(request.fuelType());
+        trip.setFuelPrice(request.fuelPrice());
+        trip.setFuelEfficiencyKmLiter(request.fuelEfficiencyKmLiter());
         trip.setNotes(request.notes());
     }
 
@@ -189,6 +192,9 @@ public class TripController {
                 trip.getEstimatedAmount(),
                 trip.getActualAmount(),
                 trip.getTollAmount(),
+                trip.getFuelType(),
+                trip.getFuelPrice(),
+                trip.getFuelEfficiencyKmLiter(),
                 trip.getNotes(),
                 trip.getCreatedAt()
         );

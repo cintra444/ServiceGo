@@ -5,10 +5,10 @@ import { PageHeader } from "../components/PageHeader";
 import { Panel } from "../components/Panel";
 import { PickerInput } from "../components/PickerInput";
 import { useAuth } from "../context/AuthContext";
-import { tripStatusLabels, tripTypeLabels } from "../constants/labels";
+import { fuelTypeLabels, tripStatusLabels, tripTypeLabels } from "../constants/labels";
 import { configuracaoApi, customersApi, paymentsApi, tripsApi, veiculosApi } from "../services/api";
 import { ApiError } from "../services/apiClient";
-import type { ConfiguracaoUsuario, Customer, Trip, TripStatus, TripType, Veiculo } from "../types/api";
+import type { ConfiguracaoUsuario, Customer, FuelType, Trip, TripStatus, TripType, Veiculo } from "../types/api";
 import { downloadCalendarEvent } from "../utils/calendar";
 import { cleanText, currency, dateTime, formatCurrencyInput, parseCurrencyInput, parseNumber, toIsoFromPtBr, toPtBrDateTime } from "../utils/format";
 import { hasPremiumAccess } from "../utils/plan";
@@ -205,6 +205,9 @@ const emptyForm = {
   durationHours: "0",
   durationMinutes: "0",
   tollAmount: "",
+  fuelType: "",
+  fuelPrice: "",
+  fuelEfficiencyKmLiter: "",
   estimatedAmount: "",
   actualAmount: "",
   notes: "",
@@ -233,8 +236,6 @@ export function TripsPage() {
   const [tripToConclude, setTripToConclude] = useState<Trip | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [concludeForm, setConcludeForm] = useState(emptyConcludeForm);
-  const [fuelPrice, setFuelPrice] = useState(0);
-  const [fuelEfficiencyKmPerLiter, setFuelEfficiencyKmPerLiter] = useState(0);
 
   const load = async () => {
     if (!session?.token) {
@@ -254,12 +255,8 @@ export function TripsPage() {
       if (session.userId) {
         const nextConfig = await configuracaoApi.get(session.token, session.userId);
         setConfig(nextConfig);
-        setFuelPrice(Number(nextConfig.fuelPrice ?? 0));
-        setFuelEfficiencyKmPerLiter(Number(nextConfig.fuelEfficiencyKmLiter ?? 0));
       } else {
         setConfig(null);
-        setFuelPrice(0);
-        setFuelEfficiencyKmPerLiter(0);
       }
     } catch (nextError) {
       setError(nextError instanceof ApiError ? nextError.message : "Falha ao carregar corridas.");
@@ -294,6 +291,9 @@ export function TripsPage() {
       durationHours: "0",
       durationMinutes: "0",
       tollAmount: trip.tollAmount != null ? formatCurrencyInput(String(Math.round(Number(trip.tollAmount) * 100))) : "",
+      fuelType: trip.fuelType ?? "",
+      fuelPrice: trip.fuelPrice != null ? formatCurrencyInput(String(Math.round(Number(trip.fuelPrice) * 100))) : "",
+      fuelEfficiencyKmLiter: trip.fuelEfficiencyKmLiter != null ? String(trip.fuelEfficiencyKmLiter) : "",
       estimatedAmount: trip.estimatedAmount != null ? formatCurrencyInput(String(Math.round(Number(trip.estimatedAmount) * 100))) : "",
       actualAmount: trip.actualAmount != null ? formatCurrencyInput(String(Math.round(Number(trip.actualAmount) * 100))) : "",
       notes: trip.notes ?? "",
@@ -334,12 +334,13 @@ export function TripsPage() {
         destination: form.destination,
         startAt: "",
         distanceKm: parseNumber(form.distanceKm),
+        fuelType: form.fuelType ? (form.fuelType as FuelType) : undefined,
+        fuelPrice: parseCurrencyInput(form.fuelPrice),
+        fuelEfficiencyKmLiter: parseNumber(form.fuelEfficiencyKmLiter),
         estimatedAmount: parseCurrencyInput(form.estimatedAmount),
         actualAmount: parseCurrencyInput(form.actualAmount),
       },
       config,
-      fuelPrice,
-      fuelEfficiencyKmPerLiter,
       estimatedMinutes: estimatedDurationMinutes,
       tollCost: parseCurrencyInput(form.tollAmount) ?? 0,
     });
@@ -349,7 +350,7 @@ export function TripsPage() {
       estimatedDurationMinutes > 0;
 
     return { ...estimate, ready };
-  }, [config, estimatedDurationMinutes, form, fuelEfficiencyKmPerLiter, fuelPrice]);
+  }, [config, estimatedDurationMinutes, form]);
 
   const submit = async (addToCalendar = false) => {
     if (!session?.token) {
@@ -397,6 +398,9 @@ export function TripsPage() {
         estimatedAmount: parseCurrencyInput(form.estimatedAmount),
         actualAmount: parseCurrencyInput(form.actualAmount),
         tollAmount: parseCurrencyInput(form.tollAmount),
+        fuelType: form.fuelType ? (form.fuelType as FuelType) : undefined,
+        fuelPrice: parseCurrencyInput(form.fuelPrice),
+        fuelEfficiencyKmLiter: parseNumber(form.fuelEfficiencyKmLiter),
         notes: contextualNotes,
       };
       if (editingTrip?.id) {
@@ -472,6 +476,9 @@ export function TripsPage() {
         estimatedAmount: tripToConclude.estimatedAmount ?? undefined,
         actualAmount,
         tollAmount,
+        fuelType: tripToConclude.fuelType ?? undefined,
+        fuelPrice: tripToConclude.fuelPrice ?? undefined,
+        fuelEfficiencyKmLiter: tripToConclude.fuelEfficiencyKmLiter ?? undefined,
         notes: tripToConclude.notes ?? undefined,
       };
 
@@ -719,6 +726,37 @@ export function TripsPage() {
             <input className="money-input" inputMode="decimal" value={form.tollAmount} onChange={(event) => setForm({ ...form, tollAmount: formatCurrencyInput(event.target.value) })} placeholder="R$ 0,00" />
           </label>
           <label className="field">
+            <span>Combustível da corrida</span>
+            <select value={form.fuelType} onChange={(event) => setForm({ ...form, fuelType: event.target.value })}>
+              <option value="">Usar ajuste padrão</option>
+              {Object.entries(fuelTypeLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>Preço do combustível na corrida</span>
+            <input
+              className="money-input"
+              inputMode="decimal"
+              value={form.fuelPrice}
+              onChange={(event) => setForm({ ...form, fuelPrice: formatCurrencyInput(event.target.value) })}
+              placeholder={config?.fuelPrice != null ? `Padrão atual: ${currency(config.fuelPrice)}` : "R$ 0,00"}
+            />
+          </label>
+          <label className="field">
+            <span>Consumo km/l na corrida</span>
+            <input
+              className="numeric-input"
+              inputMode="decimal"
+              value={form.fuelEfficiencyKmLiter}
+              onChange={(event) => setForm({ ...form, fuelEfficiencyKmLiter: event.target.value })}
+              placeholder={config?.fuelEfficiencyKmLiter != null ? `Padrão atual: ${config.fuelEfficiencyKmLiter}` : "Ex: 11,5"}
+            />
+          </label>
+          <label className="field">
             <span>Valor estimado da corrida</span>
             <input
               value={form.estimatedAmount}
@@ -784,6 +822,7 @@ export function TripsPage() {
               A calculadora considera ida e volta no custo operacional. A distância informada e tratada em dobro para combustível e depreciação.
             </span>
             {!calculator.ready ? <span className="helper-text">Preencha valor, distância e duração da corrida.</span> : null}
+            <span className="helper-text">Sem preenchimento na corrida, o cálculo usa o combustível padrão salvo em Ajustes.</span>
           </div>
         ) : null}
 

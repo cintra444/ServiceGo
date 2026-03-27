@@ -30,6 +30,7 @@ export type ExpenseCategory =
 export type StatusAgendamento = "AGENDADO" | "CONCLUIDO" | "CANCELADO";
 export type DepreciacaoModo = "AUTOMATICA" | "MANUAL";
 export type DepreciacaoAlocacao = "POR_KM" | "MENSAL" | "ANUAL";
+export type FuelType = "GASOLINA" | "ETANOL" | "DIESEL" | "GNV" | "FLEX";
 export type PlanType = "FREE" | "PRO";
 export type SubscriptionStatus = "TRIAL" | "ACTIVE" | "EXPIRED" | "CANCELED";
 export type SubscriptionSource = "MANUAL" | "GOOGLE" | "APPLE";
@@ -122,6 +123,9 @@ export interface Trip {
   estimatedAmount?: number | null;
   actualAmount?: number | null;
   tollAmount?: number | null;
+  fuelType?: FuelType | null;
+  fuelPrice?: number | null;
+  fuelEfficiencyKmLiter?: number | null;
   notes?: string | null;
   createdAt?: string;
 }
@@ -140,6 +144,9 @@ export interface TripRequest {
   estimatedAmount?: number;
   actualAmount?: number;
   tollAmount?: number;
+  fuelType?: FuelType;
+  fuelPrice?: number;
+  fuelEfficiencyKmLiter?: number;
   notes?: string;
 }
 
@@ -241,6 +248,7 @@ export interface ConfiguracaoUsuario {
   valorManualPorKm?: number | null;
   valorManualMensal?: number | null;
   valorManualAnual?: number | null;
+  fuelType?: FuelType | null;
   fuelPrice?: number | null;
   fuelEfficiencyKmLiter?: number | null;
 }
@@ -260,6 +268,7 @@ export interface ConfiguracaoUsuarioRequest {
   valorManualPorKm?: number;
   valorManualMensal?: number;
   valorManualAnual?: number;
+  fuelType?: FuelType;
   fuelPrice?: number;
   fuelEfficiencyKmLiter?: number;
 }

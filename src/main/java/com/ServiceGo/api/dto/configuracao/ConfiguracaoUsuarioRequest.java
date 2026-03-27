@@ -2,6 +2,7 @@ package com.ServiceGo.api.dto.configuracao;
 
 import com.ServiceGo.domain.enums.DepreciacaoAlocacao;
 import com.ServiceGo.domain.enums.DepreciacaoModo;
+import com.ServiceGo.domain.enums.FuelType;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -25,6 +26,7 @@ public record ConfiguracaoUsuarioRequest(
         @DecimalMin(value = "0.0", inclusive = false) BigDecimal valorManualPorKm,
         @DecimalMin(value = "0.0", inclusive = false) BigDecimal valorManualMensal,
         @DecimalMin(value = "0.0", inclusive = false) BigDecimal valorManualAnual,
+        FuelType fuelType,
         @DecimalMin(value = "0.0", inclusive = false) BigDecimal fuelPrice,
         @DecimalMin(value = "0.0", inclusive = false) BigDecimal fuelEfficiencyKmLiter
 ) {

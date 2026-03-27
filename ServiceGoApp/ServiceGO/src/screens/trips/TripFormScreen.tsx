@@ -8,7 +8,7 @@ import { SGInput } from "../../components/ui/SGInput";
 import { SGButton } from "../../components/ui/SGButton";
 import { ChipSelect } from "../../components/ui/ChipSelect";
 import { PremiumGate } from "../../components/ui/PremiumGate";
-import { tripStatusLabels, tripTypeLabels } from "../../constants/labels";
+import { fuelTypeLabels, tripStatusLabels, tripTypeLabels } from "../../constants/labels";
 import { colors, spacing } from "../../constants/theme";
 import { useAuth } from "../../context/AuthContext";
 import { configuracaoApi, customersApi, tripsApi, veiculosApi } from "../../services/api";
@@ -16,7 +16,7 @@ import { addEventToDeviceCalendar } from "../../utils/calendar";
 import { cleanText, currency, parseNumber } from "../../utils/format";
 import { hasPremiumAccess } from "../../utils/plan";
 import { estimateTripProfit } from "../../utils/profitEstimator";
-import type { ConfiguracaoUsuario, TripStatus, TripType } from "../../types/api";
+import type { ConfiguracaoUsuario, FuelType, TripStatus, TripType } from "../../types/api";
 import type { TripsStackParamList } from "../../navigation/types";
 
 type Props = NativeStackScreenProps<TripsStackParamList, "TripForm">;
@@ -61,6 +61,11 @@ export function TripFormScreen({ navigation, route }: Props) {
   const [distanceKm, setDistanceKm] = useState(trip?.distanceKm ? String(trip.distanceKm) : "");
   const [estimatedMinutes, setEstimatedMinutes] = useState("");
   const [tollAmount, setTollAmount] = useState(trip?.tollAmount ? String(trip.tollAmount) : "");
+  const [fuelType, setFuelType] = useState<string>(trip?.fuelType ?? "");
+  const [fuelPrice, setFuelPrice] = useState(trip?.fuelPrice ? String(trip.fuelPrice) : "");
+  const [fuelEfficiencyKmPerLiter, setFuelEfficiencyKmPerLiter] = useState(
+    trip?.fuelEfficiencyKmLiter ? String(trip.fuelEfficiencyKmLiter) : "",
+  );
   const [estimatedAmount, setEstimatedAmount] = useState(
     trip?.estimatedAmount ? String(trip.estimatedAmount) : "",
   );
@@ -69,8 +74,6 @@ export function TripFormScreen({ navigation, route }: Props) {
   const [customerOptions, setCustomerOptions] = useState<{ value: string; label: string }[]>([]);
   const [veiculoOptions, setVeiculoOptions] = useState<{ value: string; label: string }[]>([]);
   const [config, setConfig] = useState<ConfiguracaoUsuario | null>(null);
-  const [fuelPrice, setFuelPrice] = useState<number>(0);
-  const [fuelEfficiencyKmPerLiter, setFuelEfficiencyKmPerLiter] = useState<number>(0);
 
   useEffect(() => {
     const loadOptions = async () => {
@@ -92,8 +95,6 @@ export function TripFormScreen({ navigation, route }: Props) {
         if (session.userId) {
           const userConfig = await configuracaoApi.get(session.token, session.userId);
           setConfig(userConfig);
-          setFuelPrice(Number(userConfig.fuelPrice ?? 0));
-          setFuelEfficiencyKmPerLiter(Number(userConfig.fuelEfficiencyKmLiter ?? 0));
         }
       } catch {
         Alert.alert("Corrida", "Não foi possível carregar dados da calculadora.");
@@ -108,6 +109,13 @@ export function TripFormScreen({ navigation, route }: Props) {
   );
   const statusOptions = useMemo(
     () => Object.entries(tripStatusLabels).map(([value, label]) => ({ value, label })),
+    [],
+  );
+  const fuelTypeOptions = useMemo(
+    () => [
+      { value: "", label: "Usar ajuste padrão" },
+      ...Object.entries(fuelTypeLabels).map(([value, label]) => ({ value, label })),
+    ],
     [],
   );
 
@@ -154,10 +162,11 @@ export function TripFormScreen({ navigation, route }: Props) {
         distanceKm: distanceValue,
         estimatedAmount: parseNumber(estimatedAmount),
         actualAmount: parseNumber(actualAmount),
+        fuelType: fuelType ? (fuelType as FuelType) : undefined,
+        fuelPrice: parseNumber(fuelPrice),
+        fuelEfficiencyKmLiter: parseNumber(fuelEfficiencyKmPerLiter),
       },
       config,
-      fuelPrice,
-      fuelEfficiencyKmPerLiter,
       estimatedMinutes: estimatedMinutesValue,
       tollCost: parseNumber(tollAmount) ?? 0,
     });
@@ -207,8 +216,9 @@ export function TripFormScreen({ navigation, route }: Props) {
     distanceKm,
     estimatedAmount,
     estimatedMinutes,
-    fuelEfficiencyKmPerLiter,
     fuelPrice,
+    fuelEfficiencyKmPerLiter,
+    fuelType,
     origin,
     status,
     tollAmount,
@@ -269,6 +279,9 @@ export function TripFormScreen({ navigation, route }: Props) {
         estimatedAmount: parseNumber(estimatedAmount),
         actualAmount: parseNumber(actualAmount),
         tollAmount: parseNumber(tollAmount),
+        fuelType: fuelType ? (fuelType as FuelType) : undefined,
+        fuelPrice: parseNumber(fuelPrice),
+        fuelEfficiencyKmLiter: parseNumber(fuelEfficiencyKmPerLiter),
         notes: contextualNotes,
       };
       if (trip?.id) {
@@ -350,6 +363,21 @@ export function TripFormScreen({ navigation, route }: Props) {
           keyboardType="decimal-pad"
           placeholder="Ex: 12,00"
         />
+        <ChipSelect label="Combustível da corrida" value={fuelType} options={fuelTypeOptions} onChange={setFuelType} />
+        <SGInput
+          label="Preço do combustível na corrida (opcional)"
+          value={fuelPrice}
+          onChangeText={setFuelPrice}
+          keyboardType="decimal-pad"
+          placeholder={config?.fuelPrice ? `Padrão atual: ${config.fuelPrice}` : "Ex: 5,89"}
+        />
+        <SGInput
+          label="Consumo km/l na corrida (opcional)"
+          value={fuelEfficiencyKmPerLiter}
+          onChangeText={setFuelEfficiencyKmPerLiter}
+          keyboardType="decimal-pad"
+          placeholder={config?.fuelEfficiencyKmLiter ? `Padrão atual: ${config.fuelEfficiencyKmLiter}` : "Ex: 11,5"}
+        />
         <SGInput
           label="Valor estimado"
           value={estimatedAmount}
@@ -365,6 +393,7 @@ export function TripFormScreen({ navigation, route }: Props) {
           placeholder="Ex: 92,50"
         />
         <SGInput label="Observações" value={notes ?? ""} onChangeText={setNotes} multiline />
+        <Text style={styles.supportText}>Se esses campos ficarem vazios, a estimativa usa o combustível padrão salvo em Ajustes.</Text>
         <SGButton
           label={trip ? "Atualizar corrida" : "Criar corrida"}
           onPress={submit}

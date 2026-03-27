@@ -60,8 +60,6 @@ export function DashboardScreen() {
       if (session.userId) {
         config = await configuracaoApi.get(session.token, session.userId);
       }
-      const fuelPrice = Number(config?.fuelPrice ?? 0);
-      const fuelEfficiencyKmPerLiter = Number(config?.fuelEfficiencyKmLiter ?? 0);
       const today = new Date().toISOString().slice(0, 10);
       const month = new Date().getMonth();
       const year = new Date().getFullYear();
@@ -86,10 +84,8 @@ export function DashboardScreen() {
       const projections = buildProjections(
         trips,
         config,
-        fuelPrice,
-        fuelEfficiencyKmPerLiter,
       );
-      const insights = buildInsights(trips, config, fuelPrice, fuelEfficiencyKmPerLiter);
+      const insights = buildInsights(trips, config);
       setData({
         corridasHoje,
         corridasEmAndamento,
@@ -197,8 +193,6 @@ export function DashboardScreen() {
 function buildProjections(
   trips: Trip[],
   config: ConfiguracaoUsuario | null,
-  fuelPrice: number,
-  fuelEfficiencyKmPerLiter: number,
 ) {
   const now = Date.now();
   const windowStart = now - PROJECTION_WINDOW_DAYS * 24 * 60 * 60 * 1000;
@@ -232,8 +226,6 @@ function buildProjections(
       estimateTripProfit({
         trip,
         config,
-        fuelPrice,
-        fuelEfficiencyKmPerLiter,
         estimatedMinutes,
       }).profit
     );
@@ -253,8 +245,6 @@ function buildProjections(
 function buildInsights(
   trips: Trip[],
   config: ConfiguracaoUsuario | null,
-  fuelPrice: number,
-  fuelEfficiencyKmPerLiter: number,
 ) {
   const completedTrips = trips.filter(
     (trip) =>
@@ -278,8 +268,6 @@ function buildInsights(
       const profit = estimateTripProfit({
         trip,
         config,
-        fuelPrice,
-        fuelEfficiencyKmPerLiter,
         estimatedMinutes,
       });
       return { trip, profit, estimatedMinutes, startDate };

@@ -5,6 +5,7 @@ import type {
   PaymentMethod,
   PaymentStatus,
   StatusAgendamento,
+  FuelType,
   TripStatus,
   TripType,
 } from "../types/api";
@@ -64,4 +65,12 @@ export const depreciacaoAlocacaoLabels: Record<DepreciacaoAlocacao, string> = {
   POR_KM: "Por km",
   MENSAL: "Mensal",
   ANUAL: "Anual",
+};
+
+export const fuelTypeLabels: Record<FuelType, string> = {
+  GASOLINA: "Gasolina",
+  ETANOL: "Etanol",
+  DIESEL: "Diesel",
+  GNV: "GNV",
+  FLEX: "Flex",
 };

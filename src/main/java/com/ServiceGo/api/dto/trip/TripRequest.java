@@ -1,5 +1,6 @@
 package com.ServiceGo.api.dto.trip;
 
+import com.ServiceGo.domain.enums.FuelType;
 import com.ServiceGo.domain.enums.TripStatus;
 import com.ServiceGo.domain.enums.TripType;
 import jakarta.validation.constraints.DecimalMin;
@@ -23,6 +24,9 @@ public record TripRequest(
         @DecimalMin("0.0") BigDecimal estimatedAmount,
         @DecimalMin("0.0") BigDecimal actualAmount,
         @DecimalMin("0.0") BigDecimal tollAmount,
+        FuelType fuelType,
+        @DecimalMin("0.0") BigDecimal fuelPrice,
+        @DecimalMin("0.0") BigDecimal fuelEfficiencyKmLiter,
         @Size(max = 600) String notes
 ) {
 }

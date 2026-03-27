@@ -65,6 +65,7 @@ public class ConfiguracaoUsuarioController {
         configuracao.setValorManualPorKm(request.valorManualPorKm());
         configuracao.setValorManualMensal(request.valorManualMensal());
         configuracao.setValorManualAnual(request.valorManualAnual());
+        configuracao.setFuelType(request.fuelType());
         configuracao.setFuelPrice(request.fuelPrice());
         configuracao.setFuelEfficiencyKmLiter(request.fuelEfficiencyKmLiter());
         return toResponse(configuracaoRepository.save(configuracao));
@@ -94,6 +95,7 @@ public class ConfiguracaoUsuarioController {
         config.setValorManualPorKm(new BigDecimal("0.18"));
         config.setValorManualMensal(null);
         config.setValorManualAnual(null);
+        config.setFuelType(null);
         config.setFuelPrice(null);
         config.setFuelEfficiencyKmLiter(null);
         return config;
@@ -223,6 +225,7 @@ public class ConfiguracaoUsuarioController {
                 config.getValorManualPorKm(),
                 config.getValorManualMensal(),
                 config.getValorManualAnual(),
+                config.getFuelType(),
                 config.getFuelPrice(),
                 config.getFuelEfficiencyKmLiter()
         );

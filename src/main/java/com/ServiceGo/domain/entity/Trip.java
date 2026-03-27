@@ -2,6 +2,7 @@ package com.ServiceGo.domain.entity;
 
 import com.ServiceGo.domain.enums.TripStatus;
 import com.ServiceGo.domain.enums.TripType;
+import com.ServiceGo.domain.enums.FuelType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -66,6 +67,16 @@ public class Trip {
 
     @Column(name = "toll_amount", precision = 12, scale = 2)
     private BigDecimal tollAmount;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "fuel_type", length = 20)
+    private FuelType fuelType;
+
+    @Column(name = "fuel_price", precision = 12, scale = 2)
+    private BigDecimal fuelPrice;
+
+    @Column(name = "fuel_efficiency_km_liter", precision = 12, scale = 4)
+    private BigDecimal fuelEfficiencyKmLiter;
 
     @Column(length = 600)
     private String notes;
@@ -183,6 +194,30 @@ public class Trip {
 
     public void setTollAmount(BigDecimal tollAmount) {
         this.tollAmount = tollAmount;
+    }
+
+    public FuelType getFuelType() {
+        return fuelType;
+    }
+
+    public void setFuelType(FuelType fuelType) {
+        this.fuelType = fuelType;
+    }
+
+    public BigDecimal getFuelPrice() {
+        return fuelPrice;
+    }
+
+    public void setFuelPrice(BigDecimal fuelPrice) {
+        this.fuelPrice = fuelPrice;
+    }
+
+    public BigDecimal getFuelEfficiencyKmLiter() {
+        return fuelEfficiencyKmLiter;
+    }
+
+    public void setFuelEfficiencyKmLiter(BigDecimal fuelEfficiencyKmLiter) {
+        this.fuelEfficiencyKmLiter = fuelEfficiencyKmLiter;
     }
 
     public String getNotes() {
