@@ -1,0 +1,47 @@
+services:
+  - type: web
+    name: servicego-backend
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /swagger-ui.html
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: PORT
+        value: 10000
+      - key: DB_HOST
+        fromDatabase:
+          name: servicego-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: servicego-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: servicego-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: servicego-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: servicego-db
+          property: password
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRATION_HOURS
+        value: 12
+      - key: BOOTSTRAP_ADMIN_NAME
+        value: Administrador
+      - key: BOOTSTRAP_ADMIN_EMAIL
+        value: admin@servicego.local
+      - key: BOOTSTRAP_ADMIN_PASSWORD
+        sync: false
+
+databases:
+  - name: servicego-db
+    plan: free
