@@ -11,6 +11,7 @@ import { ApiError } from "../services/apiClient";
 import type { ConfiguracaoUsuario, Customer, FuelType, Trip, TripStatus, TripType, Veiculo } from "../types/api";
 import { downloadCalendarEvent } from "../utils/calendar";
 import { cleanText, currency, dateTime, formatCurrencyInput, parseCurrencyInput, parseNumber, toIsoFromPtBr, toPtBrDateTime } from "../utils/format";
+import { notifyDataRefresh } from "../utils/dataRefresh";
 import { hasPremiumAccess } from "../utils/plan";
 import { estimateTripProfit } from "../utils/profitEstimator";
 
@@ -408,6 +409,7 @@ export function TripsPage() {
       } else {
         await tripsApi.create(session.token, payload);
       }
+      notifyDataRefresh();
 
       if (addToCalendar && isPremium) {
         const startDate = new Date(startAt);
@@ -513,6 +515,12 @@ export function TripsPage() {
 
       setConcludeModalOpen(false);
       setTripToConclude(null);
+      notifyDataRefresh();
+      window.alert(
+        Number(tollAmount ?? 0) > 0
+          ? `Corrida concluída. O pedágio de ${currency(tollAmount)} foi lançado automaticamente no financeiro e no painel.`
+          : "Corrida concluída. Financeiro e painel foram atualizados.",
+      );
       await load();
     } catch (nextError) {
       setError(nextError instanceof ApiError ? nextError.message : "A corrida foi atualizada, mas houve uma falha ao finalizar o fluxo.");

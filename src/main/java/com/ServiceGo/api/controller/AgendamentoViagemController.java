@@ -20,6 +20,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -78,6 +79,7 @@ public class AgendamentoViagemController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @Transactional
     public AgendamentoViagemResponse create(@Valid @RequestBody AgendamentoViagemRequest request, Authentication authentication) {
         AgendamentoViagem agendamento = new AgendamentoViagem();
         applyRequest(request, agendamento, authentication);
@@ -90,6 +92,7 @@ public class AgendamentoViagemController {
     }
 
     @PutMapping("/{id}")
+    @Transactional
     public AgendamentoViagemResponse update(@PathVariable Long id, @Valid @RequestBody AgendamentoViagemRequest request, Authentication authentication) {
         AgendamentoViagem agendamento = resolveAgendamento(id, authentication);
         applyRequest(request, agendamento, authentication);

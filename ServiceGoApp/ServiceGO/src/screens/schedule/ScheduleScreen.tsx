@@ -16,9 +16,10 @@ import { colors, spacing } from "../../constants/theme";
 import { agendamentosApi, tripsApi } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { addEventToDeviceCalendar } from "../../utils/calendar";
-import { dateTime } from "../../utils/format";
+import { currency, dateTime } from "../../utils/format";
+import { notifyDataRefresh } from "../../utils/dataRefresh";
 import { hasPremiumAccess } from "../../utils/plan";
-import type { Agendamento, StatusAgendamento } from "../../types/api";
+import type { Agendamento, StatusAgendamento, Trip } from "../../types/api";
 
 const toPtBrDateTime = (iso?: string | null) => {
   if (!iso) {
@@ -48,6 +49,7 @@ export function ScheduleScreen() {
   const { session } = useAuth();
   const isPremium = hasPremiumAccess(session?.plan);
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
+  const [trips, setTrips] = useState<Trip[]>([]);
   const [tripOptions, setTripOptions] = useState<{ value: string; label: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [tripId, setTripId] = useState("");
@@ -98,6 +100,7 @@ export function ScheduleScreen() {
       }
       try {
         const trips = await tripsApi.list(session.token);
+        setTrips(trips);
         setTripOptions(
           trips.map((trip) => ({
             value: String(trip.id),
@@ -189,6 +192,17 @@ export function ScheduleScreen() {
         status: nextStatus,
       });
       await load();
+      notifyDataRefresh();
+      if (nextStatus === "CONCLUIDO") {
+        const linkedTrip = trips.find((trip) => trip.id === item.tripId);
+        const tollAmount = Number(linkedTrip?.tollAmount ?? 0);
+        Alert.alert(
+          "Agenda",
+          tollAmount > 0
+            ? `Agendamento concluído. O pedágio de ${currency(tollAmount)} foi lançado automaticamente no financeiro e no painel.`
+            : "Agendamento concluído. Financeiro e painel foram atualizados.",
+        );
+      }
     } catch {
       Alert.alert("Agenda", "Não foi possível atualizar status.");
     }

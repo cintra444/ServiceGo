@@ -5,12 +5,15 @@ import com.ServiceGo.api.dto.trip.TripResponse;
 import com.ServiceGo.domain.entity.AgendamentoViagem;
 import com.ServiceGo.domain.entity.ConfiguracaoUsuario;
 import com.ServiceGo.domain.entity.Customer;
+import com.ServiceGo.domain.entity.Expense;
 import com.ServiceGo.domain.entity.Trip;
 import com.ServiceGo.domain.entity.AppUser;
 import com.ServiceGo.domain.entity.Veiculo;
 import com.ServiceGo.domain.enums.StatusAgendamento;
 import com.ServiceGo.domain.enums.DepreciacaoAlocacao;
 import com.ServiceGo.domain.enums.DepreciacaoModo;
+import com.ServiceGo.domain.enums.ExpenseCategory;
+import com.ServiceGo.domain.enums.TripStatus;
 import com.ServiceGo.domain.enums.UserRole;
 import com.ServiceGo.domain.repository.AgendamentoViagemRepository;
 import com.ServiceGo.domain.repository.ConfiguracaoUsuarioRepository;
@@ -26,6 +29,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -87,21 +91,25 @@ public class TripController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @Transactional
     public TripResponse create(@Valid @RequestBody TripRequest request, Authentication authentication) {
         Trip trip = new Trip();
         applyRequest(request, trip, authentication);
         trip.setCreatedAt(OffsetDateTime.now());
         Trip saved = tripRepository.save(trip);
         sincronizarAgendamentoAutomatico(saved);
+        sincronizarDespesaPedagio(saved);
         return toResponse(saved);
     }
 
     @PutMapping("/{id}")
+    @Transactional
     public TripResponse update(@PathVariable Long id, @Valid @RequestBody TripRequest request, Authentication authentication) {
         Trip trip = resolveTrip(id, authentication);
         applyRequest(request, trip, authentication);
         Trip saved = tripRepository.save(trip);
         sincronizarAgendamentoAutomatico(saved);
+        sincronizarDespesaPedagio(saved);
         return toResponse(saved);
     }
 
@@ -242,5 +250,29 @@ public class TripController {
         config.setDepreciacaoAlocacao(DepreciacaoAlocacao.POR_KM);
         config.setValorManualPorKm(new BigDecimal("0.18"));
         return configuracaoUsuarioRepository.save(config);
+    }
+
+    private void sincronizarDespesaPedagio(Trip trip) {
+        if (trip.getStatus() != TripStatus.CONCLUIDA) {
+            return;
+        }
+
+        BigDecimal tollAmount = trip.getTollAmount();
+        if (tollAmount == null || tollAmount.compareTo(BigDecimal.ZERO) <= 0 || trip.getVeiculo() == null) {
+            return;
+        }
+
+        Expense expense = expenseRepository.findByTripId(trip.getId()).stream()
+                .filter(existingExpense -> existingExpense.getCategory() == ExpenseCategory.PEDAGIO)
+                .findFirst()
+                .orElseGet(Expense::new);
+
+        expense.setTrip(trip);
+        expense.setVeiculo(trip.getVeiculo());
+        expense.setCategory(ExpenseCategory.PEDAGIO);
+        expense.setAmount(tollAmount);
+        expense.setDescription("Pedagio gerado automaticamente ao concluir corrida");
+        expense.setOccurredAt(trip.getEndAt() != null ? trip.getEndAt() : trip.getStartAt());
+        expenseRepository.save(expense);
     }
 }

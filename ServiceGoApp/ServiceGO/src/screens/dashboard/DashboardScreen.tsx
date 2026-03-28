@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { PremiumGate } from "../../components/ui/PremiumGate";
@@ -11,6 +12,7 @@ import { useAuth } from "../../context/AuthContext";
 import { currency, dateOnly } from "../../utils/format";
 import { hasPremiumAccess } from "../../utils/plan";
 import { estimateTripProfit } from "../../utils/profitEstimator";
+import { subscribeDataRefresh } from "../../utils/dataRefresh";
 import type { ConfiguracaoUsuario, Trip } from "../../types/api";
 
 interface DashboardState {
@@ -107,6 +109,16 @@ export function DashboardScreen() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
+
+  useEffect(() => subscribeDataRefresh(() => {
+    void load();
+  }), [load]);
 
   const lucroMes = useMemo(() => data.receitaMes - data.despesasMes, [data.despesasMes, data.receitaMes]);
 

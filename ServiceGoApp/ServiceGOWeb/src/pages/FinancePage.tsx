@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { DataState } from "../components/DataState";
 import { Modal } from "../components/Modal";
 import { PageHeader } from "../components/PageHeader";
@@ -12,6 +12,7 @@ import { ApiError } from "../services/apiClient";
 import type { Customer, Expense, ExpenseCategory, Payment, PaymentMethod, PaymentStatus, RelatorioFinanceiro, Trip, Veiculo } from "../types/api";
 import { cleanText, currency, dateTime, formatCurrencyInput, parseCurrencyInput, parseNumber, toIsoFromPtBr, toOffsetIso, toPtBrDateTime } from "../utils/format";
 import { hasPremiumAccess } from "../utils/plan";
+import { subscribeDataRefresh } from "../utils/dataRefresh";
 
 function FinanceIcon({
   kind,
@@ -220,7 +221,7 @@ export function FinancePage() {
   const [paymentForm, setPaymentForm] = useState(emptyPaymentForm);
   const [expenseForm, setExpenseForm] = useState(emptyExpenseForm);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!session?.token) {
       return;
     }
@@ -244,11 +245,29 @@ export function FinancePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [session?.token]);
 
   useEffect(() => {
     void load();
-  }, [session?.token]);
+  }, [load]);
+
+  useEffect(() => subscribeDataRefresh(() => {
+    void load();
+  }), [load]);
+
+  useEffect(() => {
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === "visible") {
+        void load();
+      }
+    };
+    window.addEventListener("focus", handleVisibilityOrFocus);
+    document.addEventListener("visibilitychange", handleVisibilityOrFocus);
+    return () => {
+      window.removeEventListener("focus", handleVisibilityOrFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityOrFocus);
+    };
+  }, [load]);
 
   const totals = useMemo(() => {
     const receita = payments.reduce((sum, payment) => sum + Number(payment.amount ?? 0), 0);

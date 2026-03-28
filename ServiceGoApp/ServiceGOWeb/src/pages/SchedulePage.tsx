@@ -9,7 +9,8 @@ import { agendamentosApi, tripsApi } from "../services/api";
 import { ApiError } from "../services/apiClient";
 import type { Agendamento, StatusAgendamento, Trip } from "../types/api";
 import { downloadCalendarEvent } from "../utils/calendar";
-import { dateTime, toIsoFromPtBr, toPtBrDateTime } from "../utils/format";
+import { currency, dateTime, toIsoFromPtBr, toPtBrDateTime } from "../utils/format";
+import { notifyDataRefresh } from "../utils/dataRefresh";
 import { hasPremiumAccess } from "../utils/plan";
 
 function ScheduleIcon({
@@ -202,6 +203,16 @@ export function SchedulePage() {
         status: nextStatus,
       });
       await load();
+      notifyDataRefresh();
+      if (nextStatus === "CONCLUIDO") {
+        const linkedTrip = trips.find((trip) => trip.id === item.tripId);
+        const tollAmount = Number(linkedTrip?.tollAmount ?? 0);
+        window.alert(
+          tollAmount > 0
+            ? `Agendamento concluído. O pedágio de ${currency(tollAmount)} foi lançado automaticamente no financeiro e no painel.`
+            : "Agendamento concluído. Financeiro e painel foram atualizados.",
+        );
+      }
     } catch (nextError) {
       setError(nextError instanceof ApiError ? nextError.message : "Não foi possível atualizar status.");
     }

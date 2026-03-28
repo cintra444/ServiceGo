@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { DataState } from "../components/DataState";
 import { PageHeader } from "../components/PageHeader";
 import { Panel } from "../components/Panel";
@@ -8,6 +8,7 @@ import { expensesApi, paymentsApi, tripsApi } from "../services/api";
 import { ApiError } from "../services/apiClient";
 import type { Expense, Payment, Trip } from "../types/api";
 import { currency, dateOnly } from "../utils/format";
+import { subscribeDataRefresh } from "../utils/dataRefresh";
 
 interface DashboardData {
   trips: Trip[];
@@ -73,30 +74,47 @@ export function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<DashboardData>({ trips: [], payments: [], expenses: [] });
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!session?.token) {
       return;
     }
+    try {
+      setLoading(true);
+      setError(null);
+      const [trips, payments, expenses] = await Promise.all([
+        tripsApi.list(session.token),
+        paymentsApi.list(session.token),
+        expensesApi.list(session.token),
+      ]);
+      setData({ trips, payments, expenses });
+    } catch (nextError) {
+      setError(nextError instanceof ApiError ? nextError.message : "Falha ao carregar indicadores.");
+    } finally {
+      setLoading(false);
+    }
+  }, [session?.token]);
 
-    const load = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const [trips, payments, expenses] = await Promise.all([
-          tripsApi.list(session.token),
-          paymentsApi.list(session.token),
-          expensesApi.list(session.token),
-        ]);
-        setData({ trips, payments, expenses });
-      } catch (nextError) {
-        setError(nextError instanceof ApiError ? nextError.message : "Falha ao carregar indicadores.");
-      } finally {
-        setLoading(false);
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  useEffect(() => subscribeDataRefresh(() => {
+    void load();
+  }), [load]);
+
+  useEffect(() => {
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === "visible") {
+        void load();
       }
     };
-
-    void load();
-  }, [session?.token]);
+    window.addEventListener("focus", handleVisibilityOrFocus);
+    document.addEventListener("visibilitychange", handleVisibilityOrFocus);
+    return () => {
+      window.removeEventListener("focus", handleVisibilityOrFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityOrFocus);
+    };
+  }, [load]);
 
   const metrics = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);

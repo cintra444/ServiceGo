@@ -14,6 +14,7 @@ import { useAuth } from "../../context/AuthContext";
 import { configuracaoApi, customersApi, tripsApi, veiculosApi } from "../../services/api";
 import { addEventToDeviceCalendar } from "../../utils/calendar";
 import { cleanText, currency, parseNumber } from "../../utils/format";
+import { notifyDataRefresh } from "../../utils/dataRefresh";
 import { hasPremiumAccess } from "../../utils/plan";
 import { estimateTripProfit } from "../../utils/profitEstimator";
 import type { ConfiguracaoUsuario, FuelType, TripStatus, TripType } from "../../types/api";
@@ -288,6 +289,16 @@ export function TripFormScreen({ navigation, route }: Props) {
         await tripsApi.update(session.token, trip.id, payload);
       } else {
         await tripsApi.create(session.token, payload);
+      }
+      notifyDataRefresh();
+      if (status === "CONCLUIDA") {
+        const tollValue = parseNumber(tollAmount) ?? 0;
+        Alert.alert(
+          "Corrida",
+          tollValue > 0
+            ? `Corrida concluída. O pedágio de ${currency(tollValue)} foi lançado automaticamente no financeiro e no painel.`
+            : "Corrida salva e painel atualizado.",
+        );
       }
       if (openCalendarAfterSave) {
         const startDate = new Date(startAtIso);

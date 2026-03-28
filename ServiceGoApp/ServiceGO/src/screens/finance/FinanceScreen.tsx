@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { Ionicons } from "@expo/vector-icons";
 import { HeaderHelpButton } from "../../components/ui/HeaderHelpButton";
@@ -18,6 +18,7 @@ import { expensesApi, paymentsApi, relatoriosApi, veiculosApi } from "../../serv
 import { useAuth } from "../../context/AuthContext";
 import { currency, dateTime } from "../../utils/format";
 import { hasPremiumAccess } from "../../utils/plan";
+import { subscribeDataRefresh } from "../../utils/dataRefresh";
 import type { FinanceStackParamList } from "../../navigation/types";
 import type { Expense, Payment, RelatorioFinanceiro, Veiculo } from "../../types/api";
 
@@ -84,6 +85,16 @@ export function FinanceScreen() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
+
+  useEffect(() => subscribeDataRefresh(() => {
+    void load();
+  }), [load]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
