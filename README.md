@@ -88,6 +88,50 @@ Se tudo estiver correto, a API sera iniciada localmente em:
 http://localhost:8080
 ```
 
+## Como Rodar com Docker
+
+Se voce quiser subir o backend e o PostgreSQL no Docker Desktop, o projeto agora ja vem preparado com `Dockerfile` e `docker-compose.yml`.
+
+### Portas usadas no Docker
+
+- Backend: `http://localhost:8080`
+- PostgreSQL do container: `localhost:5433`
+
+O banco foi exposto na `5433` para nao conflitar com um PostgreSQL local na `5432`.
+
+### Subir os containers
+
+Antes de subir, se houver um backend local rodando na `8080`, finalize esse processo.
+
+Depois execute:
+
+```powershell
+docker compose up -d --build
+```
+
+### Acompanhar os logs
+
+```powershell
+docker compose logs -f backend
+```
+
+### Parar os containers
+
+```powershell
+docker compose down
+```
+
+Se quiser parar e remover tambem o volume do banco criado pelo Docker:
+
+```powershell
+docker compose down -v
+```
+
+### Credenciais iniciais no ambiente Docker
+
+- Email: `admin@servicego.local`
+- Senha: `admin123`
+
 ## Documentacao da API
 
 Depois de iniciar o sistema, voce pode acessar a documentacao interativa nos links abaixo:

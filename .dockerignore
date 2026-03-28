@@ -1,0 +1,10 @@
+.git
+.idea
+.m2
+.m2repo
+target
+ServiceGoApp
+docs
+servicego-run.log
+*.iml
+*.log

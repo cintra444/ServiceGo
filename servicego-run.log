@@ -18832,3 +18832,16 @@ Hibernate:
 2026-03-27T20:53:02.405-03:00 DEBUG 25092 --- [ServiceGo] [nio-8080-exec-1] m.m.a.RequestResponseBodyMethodProcessor : Using 'application/json', given [*/*] and supported [application/json, application/*+json, application/yaml]
 2026-03-27T20:53:02.406-03:00 DEBUG 25092 --- [ServiceGo] [nio-8080-exec-1] m.m.a.RequestResponseBodyMethodProcessor : Writing [[ExpenseResponse[id=6, tripId=13, veiculoId=1, veiculoPlaca=FNZ8D38, category=PEDAGIO, amount=15.00, (truncated)...]
 2026-03-27T20:53:02.411-03:00 DEBUG 25092 --- [ServiceGo] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed 200 OK
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  21:05 min
+[INFO] Finished at: 2026-03-27T21:07:30-03:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.springframework.boot:spring-boot-maven-plugin:4.0.3:run (default-cli) on project ServiceGo: Process terminated with exit code: -1 -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException
