@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">ServiceGo Smart Driver</string>
+    <string name="accessibility_service_label">ServiceGo Smart Driver</string>
+    <string name="accessibility_service_description">Le o texto visivel em apps de mobilidade para alertar sobre bairros bloqueados.</string>
+    <string name="accessibility_service_summary">Detecta ofertas de corrida e mostra aviso visual sem automatizar cliques.</string>
+</resources>
+
