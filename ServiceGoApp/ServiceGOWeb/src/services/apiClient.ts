@@ -1,6 +1,16 @@
 const REQUEST_TIMEOUT_MS = 12000;
 
-const rawApiBaseUrl = import.meta.env.VITE_API_URL?.trim() ?? "";
+type RuntimeConfigWindow = Window & {
+  __SERVICEGO_CONFIG__?: {
+    API_URL?: string;
+  };
+};
+
+const runtimeApiBaseUrl =
+  typeof window === "undefined"
+    ? ""
+    : ((window as RuntimeConfigWindow).__SERVICEGO_CONFIG__?.API_URL?.trim() ?? "");
+const rawApiBaseUrl = runtimeApiBaseUrl || import.meta.env.VITE_API_URL?.trim() || "";
 export const API_BASE_URL = rawApiBaseUrl ? rawApiBaseUrl.replace(/\/$/, "") : "";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
