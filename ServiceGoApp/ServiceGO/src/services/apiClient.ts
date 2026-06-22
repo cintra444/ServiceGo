@@ -1,11 +1,17 @@
+import Constants from "expo-constants";
 import { NativeModules, Platform } from "react-native";
 
 const REQUEST_TIMEOUT_MS = 12000;
 
 const resolveApiBaseUrl = () => {
-  const envUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+  const envUrl = (Constants.expoConfig?.extra as any)?.API_URL?.trim();
   if (envUrl) {
     return envUrl;
+  }
+
+  const publicEnvUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+  if (publicEnvUrl) {
+    return publicEnvUrl;
   }
 
   const devServerOrigin = process.env.EXPO_DEV_SERVER_ORIGIN?.trim();

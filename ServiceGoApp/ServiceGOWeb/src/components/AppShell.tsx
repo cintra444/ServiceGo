@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
+import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 
 const navItems = [
@@ -108,19 +109,34 @@ function NavIcon({
 }
 
 export function AppShell() {
+  const [navOpen, setNavOpen] = useState(false);
   const { session, logout } = useAuth();
   const isAdmin = session?.role === "ROLE_ADMINISTRADOR" || session?.role === "ADMINISTRADOR";
   const visibleNavItems = navItems.filter((item) => !item.adminOnly || isAdmin);
+  const closeNav = () => setNavOpen(false);
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <div className="brand-panel">
-          <div className="panel-accent" aria-hidden="true" />
-          <div className="brand-mark">SG</div>
+    <div className={`app-shell ${navOpen ? "nav-open" : ""}`}>
+      <aside className={`sidebar ${navOpen ? "sidebar-open" : ""}`}>
+        <div className="brand-panel sidebar-header">
           <div>
+            <div className="panel-accent" aria-hidden="true" />
+            <div className="brand-mark">SG</div>
+          </div>
+
+          <div className="brand-copy">
             <h1>ServiceGO Web</h1>
           </div>
+
+          <button
+            className="mobile-sidebar-close"
+            type="button"
+            onClick={closeNav}
+            aria-label="Fechar menu"
+          >
+            <span />
+            <span />
+          </button>
         </div>
 
         <nav className="nav-menu">
@@ -129,6 +145,7 @@ export function AppShell() {
               key={item.to}
               to={item.to}
               className={({ isActive }) => `nav-item${isActive ? " nav-item-active" : ""}`}
+              onClick={closeNav}
             >
               <span className="nav-item-icon">
                 <NavIcon kind={item.icon} />
@@ -153,7 +170,28 @@ export function AppShell() {
         </div>
       </aside>
 
+      <div className={`mobile-menu-backdrop${navOpen ? " visible" : ""}`} onClick={closeNav} />
+
       <main className="main-content">
+        <div className="mobile-topbar">
+          <button
+            className={`mobile-menu-button${navOpen ? " is-open" : ""}`}
+            onClick={() => setNavOpen((open) => !open)}
+            type="button"
+            aria-label={navOpen ? "Fechar menu" : "Abrir menu"}
+            aria-expanded={navOpen}
+          >
+            <span className="mobile-menu-icon" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </span>
+          </button>
+          <div className="mobile-brand">
+            <strong>ServiceGO Web</strong>
+          </div>
+        </div>
+
         <Outlet />
       </main>
     </div>
