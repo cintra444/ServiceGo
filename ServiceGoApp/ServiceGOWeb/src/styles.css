@@ -85,7 +85,10 @@ button {
   border: 1px solid var(--brand-border);
   background: var(--brand-surface);
   color: var(--brand-ink);
-  transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease;
 }
 
 .mobile-menu-button:hover {
@@ -108,7 +111,9 @@ button {
   height: 2px;
   border-radius: 999px;
   background: currentColor;
-  transition: transform 180ms ease, opacity 180ms ease;
+  transition:
+    transform 180ms ease,
+    opacity 180ms ease;
 }
 
 .mobile-menu-button.is-open .mobile-menu-icon span:nth-child(1) {
@@ -212,7 +217,11 @@ button {
   left: -1rem;
   width: 8.5rem;
   height: 0.8rem;
-  background: linear-gradient(90deg, var(--brand-cyan), rgba(24, 199, 245, 0.1));
+  background: linear-gradient(
+    90deg,
+    var(--brand-cyan),
+    rgba(24, 199, 245, 0.1)
+  );
   transform: skewX(-32deg);
   opacity: 0.8;
 }
@@ -264,7 +273,11 @@ button {
   display: grid;
   place-items: center;
   border-radius: 18px;
-  background: linear-gradient(135deg, var(--brand-cyan), var(--brand-blue-deep));
+  background: linear-gradient(
+    135deg,
+    var(--brand-cyan),
+    var(--brand-blue-deep)
+  );
   color: #fff;
   font-weight: 800;
   position: relative;
@@ -310,7 +323,11 @@ button {
 
 .nav-item:hover,
 .nav-item-active {
-  background: linear-gradient(135deg, rgba(24, 199, 245, 0.12), rgba(15, 120, 201, 0.1));
+  background: linear-gradient(
+    135deg,
+    rgba(24, 199, 245, 0.12),
+    rgba(15, 120, 201, 0.1)
+  );
   border-color: rgba(24, 199, 245, 0.34);
   transform: translateY(-1px);
 }
@@ -346,7 +363,11 @@ button {
 }
 
 .nav-item-active .nav-item-icon {
-  background: linear-gradient(135deg, var(--brand-cyan), var(--brand-blue-deep));
+  background: linear-gradient(
+    135deg,
+    var(--brand-cyan),
+    var(--brand-blue-deep)
+  );
   color: white;
 }
 
@@ -816,13 +837,21 @@ button {
 .hero-stripe-blue {
   top: 7rem;
   width: 18rem;
-  background: linear-gradient(90deg, var(--brand-blue), rgba(15, 120, 201, 0.12));
+  background: linear-gradient(
+    90deg,
+    var(--brand-blue),
+    rgba(15, 120, 201, 0.12)
+  );
 }
 
 .hero-stripe-cyan {
   bottom: 2.7rem;
   width: 16rem;
-  background: linear-gradient(90deg, var(--brand-cyan), rgba(24, 199, 245, 0.08));
+  background: linear-gradient(
+    90deg,
+    var(--brand-cyan),
+    rgba(24, 199, 245, 0.08)
+  );
 }
 
 .login-hero h1 {
@@ -859,7 +888,12 @@ button {
   width: min(100%, 18rem);
   height: 0.85rem;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--brand-blue), var(--brand-cyan), rgba(24, 199, 245, 0.1));
+  background: linear-gradient(
+    90deg,
+    var(--brand-blue),
+    var(--brand-cyan),
+    rgba(24, 199, 245, 0.1)
+  );
   transform: skewX(-30deg);
 }
 
@@ -892,7 +926,11 @@ button {
   right: -2.8rem;
   width: 8rem;
   height: 2.2rem;
-  background: linear-gradient(90deg, rgba(24, 199, 245, 0.2), rgba(15, 120, 201, 0.08));
+  background: linear-gradient(
+    90deg,
+    rgba(24, 199, 245, 0.2),
+    rgba(15, 120, 201, 0.08)
+  );
   transform: rotate(-20deg);
   pointer-events: none;
 }
@@ -907,7 +945,11 @@ button {
   width: 3rem;
   height: 3rem;
   border-radius: 18px;
-  background: linear-gradient(135deg, var(--brand-cyan), var(--brand-blue-deep));
+  background: linear-gradient(
+    135deg,
+    var(--brand-cyan),
+    var(--brand-blue-deep)
+  );
   color: white;
   font-weight: 800;
   flex: 0 0 auto;
@@ -1061,7 +1103,11 @@ button {
 }
 
 .primary-button {
-  background: linear-gradient(135deg, var(--brand-cyan), var(--brand-blue-deep));
+  background: linear-gradient(
+    135deg,
+    var(--brand-cyan),
+    var(--brand-blue-deep)
+  );
   color: white;
 }
 

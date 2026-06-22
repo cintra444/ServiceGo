@@ -3,20 +3,64 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 
 const navItems = [
-  { to: "/dashboard", label: "Painel", hint: "Resumo diário", icon: "dashboard" as const },
+  {
+    to: "/dashboard",
+    label: "Painel",
+    hint: "Resumo diário",
+    icon: "dashboard" as const,
+  },
   { to: "/trips", label: "Corridas", hint: "Operação", icon: "trips" as const },
-  { to: "/customers", label: "Clientes", hint: "Passageiros", icon: "customers" as const },
-  { to: "/vehicles", label: "Veículos", hint: "Frota", icon: "vehicles" as const },
-  { to: "/finance", label: "Financeiro", hint: "Receitas e custos", icon: "finance" as const },
-  { to: "/schedule", label: "Agenda", hint: "Compromissos", icon: "schedule" as const },
-  { to: "/settings", label: "Ajustes", hint: "Conta e plano", icon: "settings" as const },
-  { to: "/users", label: "Usuários", hint: "Gestão global", icon: "users" as const, adminOnly: true },
+  {
+    to: "/customers",
+    label: "Clientes",
+    hint: "Passageiros",
+    icon: "customers" as const,
+  },
+  {
+    to: "/vehicles",
+    label: "Veículos",
+    hint: "Frota",
+    icon: "vehicles" as const,
+  },
+  {
+    to: "/finance",
+    label: "Financeiro",
+    hint: "Receitas e custos",
+    icon: "finance" as const,
+  },
+  {
+    to: "/schedule",
+    label: "Agenda",
+    hint: "Compromissos",
+    icon: "schedule" as const,
+  },
+  {
+    to: "/settings",
+    label: "Ajustes",
+    hint: "Conta e plano",
+    icon: "settings" as const,
+  },
+  {
+    to: "/users",
+    label: "Usuários",
+    hint: "Gestão global",
+    icon: "users" as const,
+    adminOnly: true,
+  },
 ];
 
 function NavIcon({
   kind,
 }: {
-  kind: "dashboard" | "trips" | "customers" | "vehicles" | "finance" | "schedule" | "settings" | "users";
+  kind:
+    | "dashboard"
+    | "trips"
+    | "customers"
+    | "vehicles"
+    | "finance"
+    | "schedule"
+    | "settings"
+    | "users";
 }) {
   const icons = {
     dashboard: (
@@ -111,7 +155,8 @@ function NavIcon({
 export function AppShell() {
   const [navOpen, setNavOpen] = useState(false);
   const { session, logout } = useAuth();
-  const isAdmin = session?.role === "ROLE_ADMINISTRADOR" || session?.role === "ADMINISTRADOR";
+  const isAdmin =
+    session?.role === "ROLE_ADMINISTRADOR" || session?.role === "ADMINISTRADOR";
   const visibleNavItems = navItems.filter((item) => !item.adminOnly || isAdmin);
   const closeNav = () => setNavOpen(false);
 
@@ -144,7 +189,9 @@ export function AppShell() {
             <NavLink
               key={item.to}
               to={item.to}
-              className={({ isActive }) => `nav-item${isActive ? " nav-item-active" : ""}`}
+              className={({ isActive }) =>
+                `nav-item${isActive ? " nav-item-active" : ""}`
+              }
               onClick={closeNav}
             >
               <span className="nav-item-icon">
@@ -163,14 +210,19 @@ export function AppShell() {
           <span className="eyebrow">Sessão ativa</span>
           <strong>{session?.email ?? "Usuário"}</strong>
           <span>{isAdmin ? "Administrador" : "Motorista"}</span>
-          <span>{session?.plan?.type === "PRO" ? "Plano Pro" : "Plano Free"}</span>
+          <span>
+            {session?.plan?.type === "PRO" ? "Plano Pro" : "Plano Free"}
+          </span>
           <button className="secondary-button" onClick={logout} type="button">
             Sair
           </button>
         </div>
       </aside>
 
-      <div className={`mobile-menu-backdrop${navOpen ? " visible" : ""}`} onClick={closeNav} />
+      <div
+        className={`mobile-menu-backdrop${navOpen ? " visible" : ""}`}
+        onClick={closeNav}
+      />
 
       <main className="main-content">
         <div className="mobile-topbar">
